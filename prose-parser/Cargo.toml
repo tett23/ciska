@@ -7,3 +7,5 @@ edition = "2021"
 name = "prose_parser"
 
 [dependencies]
+pest = "2.0"
+pest_derive = "2.0"

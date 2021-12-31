@@ -1,0 +1,28 @@
+eof = _{ !ANY }
+
+white_space = { " " }
+line_break = _{ "\n" | "\r\n" | "\r" }
+eol = { (line_break | EOI) }
+sharp = { "#" }
+
+heading_begin = { sharp{1,6} ~ white_space }
+tag_begin = { sharp }
+comment_begin = { "%%" }
+
+// letter = _{ '\u{00}'..'\u{10FFFF}' }
+letter = _{ 'a'..'z' | '0'..'9' | "#" | " " | "%" }
+text = { letter+ }
+tag = { tag_begin ~ text }
+inline = _{ tag | text }
+inlines = _{ inline+ }
+
+heading = { heading_begin ~ inlines }
+paragraph = { inlines }
+br = { line_break+ }
+block_comment = { comment_begin ~ white_space ~ text }
+block = _{ heading | block_comment | br | paragraph }
+blocks = _{ (block ~ eol)* }
+
+line = { line_break | (!eol ~ blocks) ~ eol }
+lines = _{ (line)* }
+document = { SOI ~ lines ~ EOI }
