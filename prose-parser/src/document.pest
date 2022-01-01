@@ -1,28 +1,34 @@
-eof = _{ !ANY }
-
 white_space = { " " }
 line_break = _{ "\n" | "\r\n" | "\r" }
-eol = { (line_break | EOI) }
+eol = _{ (line_break | EOI) }
 sharp = { "#" }
 
-heading_begin = { sharp{1,6} ~ white_space }
+heading_begin = ${ sharp{1,6} ~ white_space }
 tag_begin = { sharp }
 comment_begin = { "%%" }
 
 // letter = _{ '\u{00}'..'\u{10FFFF}' }
-letter = _{ 'a'..'z' | '0'..'9' | "#" | " " | "%" }
-text = { letter+ }
-tag = { tag_begin ~ text }
-inline = _{ tag | text }
+// letter = _{ 'a'..'z' | '0'..'9' | "#" }
+letter = _{ '\u{00}'..'\u{09}' | '\u{0E}'..'\u{01F}' | '\u{021}'..'\u{10FFFF}' }
+// word = _{ (!white_space ~ letter+) ~ white_space }
+slug_letter = _{ ('a'..'z' | '0'..'9' | "_" | "-") }
+// text = { (letter | white_space)+ | slug_letter+ | letter+ }
+word = { (slug_letter | letter)+ }
+words = { white_space? ~ word ~ (white_space* ~ word)* }
+text = { words }
+slug = { slug_letter+ }
+tag = ${ tag_begin ~ slug ~ white_space* ~ inline* }
+inline_comment = ${ "-%" ~ words ~ "%" }
+inline = _{ white_space | tag | inline_comment | word }
 inlines = _{ inline+ }
 
-heading = { heading_begin ~ inlines }
-paragraph = { inlines }
-br = { line_break+ }
-block_comment = { comment_begin ~ white_space ~ text }
+heading = ${ heading_begin ~ inlines }
+paragraph = ${ inlines }
+br = ${ line_break+ }
+block_comment = ${ comment_begin ~ white_space ~ words }
 block = _{ heading | block_comment | br | paragraph }
 blocks = _{ (block ~ eol)* }
 
-line = { line_break | (!eol ~ blocks) ~ eol }
+line = _{ line_break | (!eol ~ blocks) ~ eol }
 lines = _{ (line)* }
 document = { SOI ~ lines ~ EOI }
