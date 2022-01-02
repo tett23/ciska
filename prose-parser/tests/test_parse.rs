@@ -5,18 +5,34 @@ use std::{fs, path::Path};
 
 #[test]
 fn parse_empty() {
-    assert_yaml_snapshot!(prose_parser::parse(""), @r###"
+    assert_yaml_snapshot!(prose_parser::parse("").unwrap(), @r###"
     ---
-    Ok:
-      name: document
-    "###)
+    name: document
+    "###);
+    assert_yaml_snapshot!(prose_parser::parse("1\n2\n3").unwrap(), @r###"
+    ---
+    name: document
+    children:
+      - name: paragraph
+        children:
+          - name: text
+            value: "1"
+      - name: paragraph
+        children:
+          - name: text
+            value: "2"
+      - name: paragraph
+        children:
+          - name: text
+            value: "3"
+    "###);
 }
 
 #[test]
 fn parse() {
     read_fixtures().iter().for_each(|(name, content)| {
-        assert_yaml_snapshot!(name.as_str(), prose_parser::parse(content.as_str()));
-    })
+        assert_yaml_snapshot!(name.as_str(), prose_parser::parse(content.as_str()).unwrap());
+    });
 }
 
 fn read_fixtures() -> Vec<(String, String)> {

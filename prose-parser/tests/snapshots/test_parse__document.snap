@@ -1,62 +1,61 @@
 ---
 source: prose-parser/tests/test_parse.rs
-assertion_line: 18
-expression: "prose_parser::parse(content.as_str())"
+assertion_line: 36
+expression: "prose_parser::parse(content.as_str()).unwrap()"
 
 ---
-Ok:
-  name: document
-  children:
-    - name: heading
-      children:
-        - name: heading_begin
-          children:
-            - name: sharp
-            - name: white_space
-        - name: text
-          value: foo
-    - name: paragraph
-      children:
-        - name: text
-          value: bar
-    - name: block_comment
-      children:
-        - name: comment_begin
-        - name: white_space
-        - name: words
-          children:
-            - name: text
-              value: block
-            - name: white_space
-            - name: text
-              value: comment
-    - name: paragraph
-      children:
-        - name: tag
-          children:
-            - name: tag_begin
-              children:
-                - name: sharp
-            - name: text
-              value: tag-name
-            - name: white_space
-            - name: tag
-              children:
-                - name: tag_begin
-                  children:
-                    - name: sharp
-                - name: text
-                  value: tag2
-                - name: white_space
-                - name: text
-                  value: paragraph
-                - name: white_space
-                - name: text
-                  value: text
-                - name: white_space
-                - name: text
-                  value: "-%inline"
-                - name: white_space
-                - name: text
-                  value: comment%
+name: document
+children:
+  - name: heading
+    children:
+      - name: heading_begin
+        children:
+          - name: sharp
+          - name: white_space
+      - name: text
+        value: foo
+  - name: paragraph
+    children:
+      - name: text
+        value: bar
+  - name: block_comment
+    children:
+      - name: comment_begin
+      - name: white_space
+      - name: words
+        children:
+          - name: text
+            value: block
+          - name: white_space
+          - name: text
+            value: comment
+  - name: paragraph
+    children:
+      - name: tag
+        children:
+          - name: tag_begin
+            children:
+              - name: sharp
+          - name: text
+            value: tag-name
+          - name: white_space
+          - name: tag
+            children:
+              - name: tag_begin
+                children:
+                  - name: sharp
+              - name: text
+                value: tag2
+              - name: white_space
+              - name: text
+                value: paragraph
+              - name: white_space
+              - name: text
+                value: text
+              - name: white_space
+              - name: text
+                value: "-%inline"
+              - name: white_space
+              - name: text
+                value: comment%
 
