@@ -6,11 +6,14 @@ use serde::{Deserialize, Serialize};
 #[grammar = "document.pest"]
 pub struct DocumentParser;
 
-pub fn parse(document: &str) -> Node {
-    let pairs = DocumentParser::parse(Rule::document, document).unwrap_or_else(|e| panic!("{}", e));
-    let mut nodes = pairs.map(|item| Node::from(&item)).collect::<Vec<Node>>();
+pub fn parse(document: &str) -> Result<Node, String> {
+    DocumentParser::parse(Rule::document, document)
+        .map(|pairs| {
+            let mut nodes = pairs.map(|item| Node::from(&item)).collect::<Vec<Node>>();
 
-    nodes.pop().unwrap().clone()
+            nodes.pop().unwrap().clone()
+        })
+        .map_err(|err| err.to_string())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -21,6 +24,16 @@ pub enum Node {
     Token(Token),
     #[serde(skip_serializing)]
     Empty,
+}
+
+impl Node {
+    pub fn to_json(&self) -> Result<String, String> {
+        serde_json::to_string(self).map_err(|err| err.to_string())
+    }
+
+    pub fn to_yaml(&self) -> Result<String, String> {
+        serde_yaml::to_string(self).map_err(|err| err.to_string())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
