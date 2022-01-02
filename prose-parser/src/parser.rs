@@ -72,7 +72,7 @@ pub fn to_node(pair: &Pair<'_, Rule>) -> Node {
             name: "text".to_string(),
             value: pair.as_str().to_string(),
         }),
-        Rule::word => Node::Value(Value {
+        Rule::ch => Node::Value(Value {
             name: "text".to_string(),
             value: pair.as_str().to_string(),
         }),
@@ -83,7 +83,26 @@ pub fn to_node(pair: &Pair<'_, Rule>) -> Node {
             let child_nodes = pairs
                 .map(|item| to_node(&item))
                 .filter(|item| item != &Node::Empty)
-                .collect::<Vec<Node>>();
+                .fold(vec![], |mut acc, item| {
+                    #[allow(mutable_borrow_reservation_conflict)]
+                    match (acc.pop(), item) {
+                        (Some(Node::Value(left)), Node::Value(right)) => {
+                            acc.push(Node::Value(Value {
+                                name: "text".to_string(),
+                                value: left.value.clone() + right.value.as_str(),
+                            }));
+                        }
+                        (Some(left), right) => {
+                            acc.push(left);
+                            acc.push(right);
+                        }
+                        (None, right) => {
+                            acc.push(right);
+                        }
+                    };
+
+                    acc
+                });
 
             match child_nodes.is_empty() {
                 true => Node::Token(Token {

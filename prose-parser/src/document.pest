@@ -1,34 +1,36 @@
-white_space = { " " }
-line_break = _{ "\n" | "\r\n" | "\r" }
+white_space = _{ " " }
+br = _{ "\n" | "\r\n" | "\r" }
 eol = _{ (line_break | EOI) }
-sharp = { "#" }
+ch = { ANY }
+slug_ch = _{ 'a'..'z' | '0'..'9' | "-" | "_" }
 
-heading_begin = ${ sharp{1,6} ~ white_space }
-tag_begin = { sharp }
-comment_begin = { "%%" }
+heading_begin = ${ "#"{1,6} ~ white_space }
 
-// letter = _{ '\u{00}'..'\u{10FFFF}' }
-// letter = _{ 'a'..'z' | '0'..'9' | "#" }
-letter = _{ '\u{00}'..'\u{09}' | '\u{0E}'..'\u{01F}' | '\u{021}'..'\u{10FFFF}' }
-// word = _{ (!white_space ~ letter+) ~ white_space }
-slug_letter = _{ ('a'..'z' | '0'..'9' | "_" | "-") }
-// text = { (letter | white_space)+ | slug_letter+ | letter+ }
-word = { (slug_letter | letter)+ }
-words = { white_space? ~ word ~ (white_space* ~ word)* }
-text = { words }
-slug = { slug_letter+ }
-tag = ${ tag_begin ~ slug ~ white_space* ~ inline* }
-inline_comment = ${ "-%" ~ words ~ "%" }
-inline = _{ white_space | tag | inline_comment | word }
-inlines = _{ inline+ }
+text = { (!(br|inline_el) ~ ch)+ }
+chs = { ch+ }
+slug = { slug_ch+ }
+tag = { "#" ~ !" " ~ slug ~ (" " | !inline) }
+inline_comment = ${ "%" ~ (!"%" ~ ch)+ ~ "%"}
+em1 = _{ "*" ~ (!("*"|br) ~ ch)+ ~ "*" }
+em2 = _{ "_" ~ (!("_"|br) ~ ch)+ ~ "_" }
+em = { em1 | em2 }
+strong1 = _{ "__" ~ (!("__"|br) ~ ch)+ ~ "__" }
+strong2 = _{ "**" ~ (!("**"|br) ~ ch)+ ~ "**"}
+strong = { strong1 | strong2 }
+
+inline_el = _{ tag | strong | em | inline_comment }
+inline = _{ inline_el | text }
+inlines = _{ br | inline+ }
+
+empty_line = _{ br | ( " " | "\t" )* }
 
 heading = ${ heading_begin ~ inlines }
 paragraph = ${ inlines }
-br = ${ line_break+ }
-block_comment = ${ comment_begin ~ white_space ~ words }
-block = _{ heading | block_comment | br | paragraph }
+line_break = ${ br+ }
+block_comment = ${ "%%" ~ white_space ~ text }
+block = _{ heading | block_comment | line_break | paragraph }
 blocks = _{ (block ~ eol)* }
 
-line = _{ line_break | (!eol ~ blocks) ~ eol }
+line = _{ br | (!eol ~ blocks) ~ " "* ~ eol }
 lines = _{ (line)* }
-document = { SOI ~ lines ~ EOI }
+document = @{ SOI ~ lines ~ EOI }
