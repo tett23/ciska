@@ -1,21 +1,21 @@
 // use std::rc::Rc;
 
 pub trait Parser<R> {
-    fn parse(&self, text: String) -> Box<Result<R, String>>;
+    fn parse(&self, text: String) -> Result<Box<R>, String>;
 }
 
 struct P2<F, R>
 where
-    F: Fn(String) -> Box<Result<R, String>>,
+    F: Fn(String) -> Result<Box<R>, String>,
 {
     f: F,
 }
 
 impl<F, R> Parser<R> for P2<F, R>
 where
-    F: Fn(String) -> Box<Result<R, String>>,
+    F: Fn(String) -> Result<Box<R>, String>,
 {
-    fn parse(&self, text: String) -> Box<Result<R, String>> {
+    fn parse(&self, text: String) -> Result<Box<R>, String> {
         (self.f)(text)
     }
 }
@@ -38,6 +38,10 @@ where
         ParserProcessor { parser: f }
     }
 
+    pub fn parse(&self, text: &str) -> Result<Box<R>, String> {
+        self.parser.parse(text.to_string())
+    }
+
     // fn new(f: impl Fn(&str) -> R + 'a) -> &dyn P2<R> {}
 
     // pub fn parser<F, R>(&self, parser: Box<F>) -> Processor<F, R>
@@ -55,10 +59,10 @@ mod tests {
     #[test]
     fn it_works() {
         let actual = ParserProcessor::<String>::new(Box::new(P2 {
-            f: |a: String| Box::new(Err(a.to_string())),
+            f: |a: String| Err(a.to_string()),
         }));
         let actual = actual.parser.parse("".to_string());
 
-        assert_eq!(Box::new(Err("".to_string())), actual);
+        assert_eq!(Err("".to_string()), actual);
     }
 }
