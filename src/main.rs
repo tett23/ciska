@@ -5,13 +5,14 @@ use processor::Processor;
 use prose_parser::Node;
 
 fn main() {
-    println!("{}", parse("").unwrap().to_json().unwrap());
+    println!("{}", process("").unwrap());
 }
 
-fn parse(text: &str) -> Result<Node, String> {
-    Processor::<Node>::new()
+fn process(text: &str) -> Result<String, String> {
+    Processor::<Node, String>::new()
         .parser(prose_parser::parse)
-        .parse(text)
+        .formatter(|ast| ast.to_json())
+        .process(text)
 }
 
 #[cfg(test)]
@@ -20,6 +21,6 @@ mod tests {
 
     #[test]
     fn it_works() {
-        dbg!(parse("").unwrap());
+        dbg!(process("").unwrap());
     }
 }
