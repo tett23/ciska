@@ -21,7 +21,7 @@ impl<N> Processor<N> {
     where
         F: Fn(&str) -> Result<Box<N>, String> + 'static,
     {
-        Processor::ParserProcessor(ParserProcessor::new(into_parser(f)))
+        Processor::ParserProcessor(ParserProcessor::new(f.into()))
     }
 
     pub fn parse(&self, text: &str) -> Result<Box<N>, String> {
@@ -29,6 +29,16 @@ impl<N> Processor<N> {
             Processor::None => Err("".to_string()),
             Processor::ParserProcessor(processor) => processor.parse(text),
         }
+    }
+}
+
+impl<F, R> From<F> for Box<dyn Parser<R>>
+where
+    F: Fn(&str) -> Result<Box<R>, String> + 'static,
+    R: 'static,
+{
+    fn from(f: F) -> Self {
+        into_parser(f)
     }
 }
 
@@ -47,14 +57,6 @@ where
         (self.f)(text)
     }
 }
-
-// impl<R> From<Box<dyn Fn(&str) -> R>> for Box<dyn Parser<R>> {
-//     fn from(f: Box<dyn Fn(&str) -> R>) -> Self {
-//         Box::new(P2 {
-//             f: |a: String| Box::new(Err(a.to_string())),
-//         })
-//     }
-// }
 
 fn into_parser<F, R>(f: F) -> Box<dyn Parser<R>>
 where
