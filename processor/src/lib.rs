@@ -2,32 +2,32 @@
 
 mod parser;
 
-use parser::ParserProcessor;
+use parser::{Parser, ParserProcessor};
 
-// pub enum Processor<'a, N> {
-//     None,
-//     ParserProcessor(ParserProcessor<'a, N>),
-// }
+pub enum Processor<N> {
+    None,
+    ParserProcessor(ParserProcessor<N>),
+}
 
-// impl<'a, N> Processor<'a, N> {
-//     pub fn new() -> Processor<'a, N> {
-//         Processor::None
-//     }
+impl<N> Processor<N> {
+    pub fn new() -> Processor<N> {
+        Processor::None
+    }
 
-//     pub fn parser<F>(&self, f: F) -> Processor<N>
-//     where
-//         F: Fn(&str) -> Result<N, String>,
-//     {
-//         ParserProcessor::new(ParserProcessor::new(f))
-//     }
+    pub fn parser<F>(&self, f: Box<dyn Parser<N>>) -> Processor<N>
+    where
+        F: Fn(&str) -> Result<N, String>,
+    {
+        Processor::ParserProcessor(ParserProcessor::new(f))
+    }
 
-//     pub fn parse(&self, text: &str) -> Result<String, String> {
-//         match self {
-//             Processor::None => Err("".to_string()),
-//             Processor::ParserProcessor(processor) => Ok("".to_string()),
-//         }
-//     }
-// }
+    pub fn parse(&self, text: &str) -> Result<String, String> {
+        match self {
+            Processor::None => Err("".to_string()),
+            Processor::ParserProcessor(processor) => Ok("".to_string()),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

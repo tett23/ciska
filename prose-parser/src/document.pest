@@ -31,6 +31,13 @@ block_comment = ${ "%%" ~ white_space ~ text }
 block = _{ heading | block_comment | line_break | paragraph }
 blocks = _{ (block ~ eol)* }
 
+// themantic_break = { ((SOI ~ br) | (br ~ br)) ~ "-"{3,} ~ br ~ br }
+// multiline_blocks = {}
+
+// 中にプロックが書ける、複数行コメントが欲しい
+// table の cellの中身を変数にできるやつ
+// コードを実行できるようにする？
+
 line = _{ br | (!eol ~ blocks) ~ " "* ~ eol }
 lines = _{ (line)* }
 document = @{ SOI ~ lines ~ EOI }
