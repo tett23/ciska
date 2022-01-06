@@ -4,7 +4,7 @@ mod transformer;
 
 use formatter::Formatter;
 use parser::Parser;
-use transformer::Transformer;
+use transformer::{compose_transformer, Transformer};
 
 pub struct Processor<T, R>
 where
@@ -87,7 +87,6 @@ impl<T, R> Processor<T, R> {
     where
         F: Fn(&T) -> Result<T, String> + 'static + Clone,
         T: Clone,
-        R: Clone,
     {
         Processor {
             parser: match &self.parser {
@@ -95,7 +94,12 @@ impl<T, R> Processor<T, R> {
                 None => None,
             },
             transformer: match &self.transformer {
-                Some(v) => Some(dyn_clone::clone_box(&**v)),
+                Some(v) => {
+                    let a = dyn_clone::clone_box(&**v);
+                    let a = compose_transformer(a, f.into());
+
+                    Some(a)
+                }
                 None => Some(f.into()),
             },
             formatter: match &self.formatter {
@@ -156,24 +160,28 @@ mod tests {
     fn test_process() {
         let actual = Processor::<i32, i32>::new()
             .parser(|_text: &str| Ok(1))
+            .transformer(|_text: &i32| Ok(1))
             .formatter(|_text: &i32| Ok(1))
             .process("test");
         assert_eq!(Ok(1), actual);
 
         let actual = Processor::<String, String>::new()
             .parser(|text: &str| Ok(text.to_string()))
+            .transformer(|text: &String| Ok(text.clone()))
             .formatter(|text: &String| Ok(text.clone()))
             .process("test");
         assert_eq!(Ok("test".to_string()), actual);
 
         let actual = Processor::<Vec<i32>, Vec<i32>>::new()
             .parser(|_: &str| Ok(vec![1]))
+            .transformer(|_text| Ok(vec![1]))
             .formatter(|_text| Ok(vec![1]))
             .parse("test");
         assert_eq!(Ok(vec![1]), actual);
 
         let actual = Processor::<String, String>::new()
             .parser(|_: &str| Err("error".to_string()))
+            .transformer(|_text| Err("error".to_string()))
             .formatter(|_text| Err("error".to_string()))
             .parse("test");
         assert_eq!(Err("error".to_string()), actual);
