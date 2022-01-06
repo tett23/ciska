@@ -34,11 +34,11 @@ impl<T, R> Processor<T, R> {
         Processor {
             parser: Some(f.into()),
             transformer: match &self.transformer {
-                Some(v) => Some(dyn_clone::clone_box(&**v)),
+                Some(v) => Some(v.clone()),
                 None => None,
             },
             formatter: match &self.formatter {
-                Some(v) => Some(dyn_clone::clone_box(&**v)),
+                Some(v) => Some(v.clone()),
                 None => None,
             },
         }
@@ -62,11 +62,11 @@ impl<T, R> Processor<T, R> {
     {
         Processor {
             parser: match &self.parser {
-                Some(v) => Some(dyn_clone::clone_box(&**v)),
+                Some(v) => Some(v.clone()),
                 None => None,
             },
             transformer: match &self.transformer {
-                Some(v) => Some(dyn_clone::clone_box(&**v)),
+                Some(v) => Some(v.clone()),
                 None => None,
             },
             formatter: Some(f.into()),
@@ -90,20 +90,15 @@ impl<T, R> Processor<T, R> {
     {
         Processor {
             parser: match &self.parser {
-                Some(v) => Some(dyn_clone::clone_box(&**v)),
+                Some(v) => Some(v.clone()),
                 None => None,
             },
             transformer: match &self.transformer {
-                Some(v) => {
-                    let a = dyn_clone::clone_box(&**v);
-                    let a = compose_transformer(a, f.into());
-
-                    Some(a)
-                }
+                Some(v) => Some(compose_transformer(v.clone(), f.into())),
                 None => Some(f.into()),
             },
             formatter: match &self.formatter {
-                Some(v) => Some(dyn_clone::clone_box(&**v)),
+                Some(v) => Some(v.clone()),
                 None => None,
             },
         }

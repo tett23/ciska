@@ -1,4 +1,4 @@
-use dyn_clone::DynClone;
+use dyn_clone::{clone_box, DynClone};
 use std::marker::PhantomData;
 
 pub trait Formatter<T, R>: DynClone
@@ -7,6 +7,12 @@ where
     R: 'static,
 {
     fn format(&self, ast: &T) -> Result<R, String>;
+}
+
+impl<T, R> Clone for Box<dyn Formatter<T, R>> {
+    fn clone(&self) -> Self {
+        clone_box(&**self)
+    }
 }
 
 impl<F, T, R> From<F> for Box<dyn Formatter<T, R>>

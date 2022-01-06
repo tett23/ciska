@@ -1,4 +1,4 @@
-use dyn_clone::DynClone;
+use dyn_clone::{clone_box, DynClone};
 
 pub trait Parser<R>: DynClone {
     fn parse(&self, text: &str) -> Result<R, String>;
@@ -11,6 +11,12 @@ where
 {
     fn from(f: F) -> Self {
         into_parser(f)
+    }
+}
+
+impl<T> Clone for Box<dyn Parser<T>> {
+    fn clone(&self) -> Self {
+        clone_box(&**self)
     }
 }
 
