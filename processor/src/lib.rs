@@ -73,10 +73,24 @@ mod tests {
 
     #[test]
     fn it_works() {
+        let actual = Processor::<i32>::new()
+            .parser(into_parser(|_text: &str| Ok(Box::new(1))))
+            .parse("test");
+        assert_eq!(Ok(Box::new(1)), actual);
+
         let actual = Processor::<String>::new()
-            // .parser(|text: &str| Err(Box::new("".to_string())))
             .parser(into_parser(|text: &str| Ok(Box::new(text.to_string()))))
             .parse("test");
         assert_eq!(Ok(Box::new("test".to_string())), actual);
+
+        let actual = Processor::<Vec<i32>>::new()
+            .parser(into_parser(|_: &str| Ok(Box::new(vec![1]))))
+            .parse("test");
+        assert_eq!(Ok(Box::new(vec![1])), actual);
+
+        let actual = Processor::<i32>::new()
+            .parser(into_parser(|_: &str| Err("error".to_string())))
+            .parse("test");
+        assert_eq!(Err("error".to_string()), actual);
     }
 }
