@@ -1,13 +1,13 @@
 mod parser;
 
-use parser::ParserProcessor;
+use parser::Parser;
 
 pub enum Processor<N>
 where
     N: 'static,
 {
     None,
-    ParserProcessor(ParserProcessor<N>),
+    ParserProcessor(Box<dyn Parser<N>>),
 }
 
 impl<N> Processor<N> {
@@ -19,13 +19,13 @@ impl<N> Processor<N> {
     where
         F: Fn(&str) -> Result<N, String> + 'static,
     {
-        Processor::ParserProcessor(ParserProcessor::new(f.into()))
+        Processor::ParserProcessor(f.into())
     }
 
     pub fn parse(&self, text: &str) -> Result<N, String> {
         match self {
             Processor::None => Err("".to_string()),
-            Processor::ParserProcessor(processor) => processor.parse(text),
+            Processor::ParserProcessor(processor) => processor.parse(text.to_string()),
         }
     }
 }
