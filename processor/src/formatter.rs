@@ -16,7 +16,7 @@ where
     R: 'static + Clone,
 {
     fn from(f: F) -> Self {
-        into_parser(f)
+        into_formatter(f)
     }
 }
 
@@ -42,7 +42,7 @@ where
     }
 }
 
-fn into_parser<F, T, R>(f: F) -> Box<(dyn Formatter<T, R>)>
+fn into_formatter<F, T, R>(f: F) -> Box<(dyn Formatter<T, R>)>
 where
     F: Fn(&T) -> Result<R, String> + 'static + Clone,
     T: 'static + Clone,

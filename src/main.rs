@@ -11,6 +11,7 @@ fn main() {
 fn process(text: &str) -> Result<String, String> {
     Processor::<Node, String>::new()
         .parser(prose_parser::parse)
+        .transformer(|ast| Ok(ast.clone()))
         .formatter(|ast| ast.to_json())
         .process(text)
 }

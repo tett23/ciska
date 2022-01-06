@@ -1,8 +1,10 @@
 mod formatter;
 mod parser;
+mod transformer;
 
 use formatter::Formatter;
 use parser::Parser;
+use transformer::Transformer;
 
 pub struct Processor<T, R>
 where
@@ -10,6 +12,7 @@ where
     R: 'static,
 {
     parser: Option<Box<dyn Parser<T>>>,
+    transformer: Option<Box<dyn Transformer<T, T>>>,
     formatter: Option<Box<dyn Formatter<T, R>>>,
 }
 
@@ -17,6 +20,7 @@ impl<T, R> Processor<T, R> {
     pub fn new() -> Processor<T, R> {
         Processor {
             parser: None,
+            transformer: None,
             formatter: None,
         }
     }
@@ -29,6 +33,10 @@ impl<T, R> Processor<T, R> {
     {
         Processor {
             parser: Some(f.into()),
+            transformer: match &self.transformer {
+                Some(v) => Some(dyn_clone::clone_box(&**v)),
+                None => None,
+            },
             formatter: match &self.formatter {
                 Some(v) => Some(dyn_clone::clone_box(&**v)),
                 None => None,
@@ -57,6 +65,10 @@ impl<T, R> Processor<T, R> {
                 Some(v) => Some(dyn_clone::clone_box(&**v)),
                 None => None,
             },
+            transformer: match &self.transformer {
+                Some(v) => Some(dyn_clone::clone_box(&**v)),
+                None => None,
+            },
             formatter: Some(f.into()),
         }
     }
@@ -71,8 +83,45 @@ impl<T, R> Processor<T, R> {
         }
     }
 
+    pub fn transformer<F>(&self, f: F) -> Processor<T, R>
+    where
+        F: Fn(&T) -> Result<T, String> + 'static + Clone,
+        T: Clone,
+        R: Clone,
+    {
+        Processor {
+            parser: match &self.parser {
+                Some(v) => Some(dyn_clone::clone_box(&**v)),
+                None => None,
+            },
+            transformer: match &self.transformer {
+                Some(v) => Some(dyn_clone::clone_box(&**v)),
+                None => Some(f.into()),
+            },
+            formatter: match &self.formatter {
+                Some(v) => Some(dyn_clone::clone_box(&**v)),
+                None => None,
+            },
+        }
+    }
+
+    pub fn transform(&self, ast: &T) -> Result<T, String> {
+        match self {
+            Processor {
+                transformer: Some(transformer),
+                ..
+            } => transformer.transform(ast),
+            _ => Err("".to_string()),
+        }
+    }
+
     pub fn process(&self, text: &str) -> Result<R, String> {
-        self.format(&self.parse(text)?)
+        let ast = self.parse(text)?;
+        let ast = match &self.transformer {
+            Some(transformer) => transformer.transform(&ast),
+            None => Ok(ast),
+        };
+        self.format(&ast?)
     }
 }
 
