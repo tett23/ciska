@@ -1,5 +1,5 @@
 pub trait Parser<R> {
-    fn parse(&self, text: String) -> Result<R, String>;
+    fn parse(&self, text: &str) -> Result<R, String>;
 }
 
 impl<F, R> From<F> for Box<dyn Parser<R>>
@@ -14,16 +14,16 @@ where
 
 struct ParserProcessor<F, R>
 where
-    F: Fn(String) -> Result<R, String>,
+    F: Fn(&str) -> Result<R, String>,
 {
     f: F,
 }
 
 impl<F, R> Parser<R> for ParserProcessor<F, R>
 where
-    F: Fn(String) -> Result<R, String>,
+    F: Fn(&str) -> Result<R, String>,
 {
-    fn parse(&self, text: String) -> Result<R, String> {
+    fn parse(&self, text: &str) -> Result<R, String> {
         (self.f)(text)
     }
 }
@@ -34,6 +34,6 @@ where
     R: 'static,
 {
     Box::new(ParserProcessor {
-        f: move |text: String| f(&text),
+        f: move |text: &str| f(&text),
     })
 }

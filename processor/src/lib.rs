@@ -27,7 +27,7 @@ impl<N> Processor<N> {
         match self {
             Processor {
                 parser: Some(parser),
-            } => parser.parse(text.to_string()),
+            } => parser.parse(text),
             _ => Err("".to_string()),
         }
     }
