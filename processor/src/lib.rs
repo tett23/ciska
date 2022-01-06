@@ -2,30 +2,33 @@ mod parser;
 
 use parser::Parser;
 
-pub enum Processor<N>
+pub struct Processor<N>
 where
     N: 'static,
 {
-    None,
-    ParserProcessor(Box<dyn Parser<N>>),
+    parser: Option<Box<dyn Parser<N>>>,
 }
 
 impl<N> Processor<N> {
     pub fn new() -> Processor<N> {
-        Processor::None
+        Processor { parser: None }
     }
 
     pub fn parser<F>(&self, f: F) -> Processor<N>
     where
         F: Fn(&str) -> Result<N, String> + 'static,
     {
-        Processor::ParserProcessor(f.into())
+        Processor {
+            parser: Some(f.into()),
+        }
     }
 
     pub fn parse(&self, text: &str) -> Result<N, String> {
         match self {
-            Processor::None => Err("".to_string()),
-            Processor::ParserProcessor(processor) => processor.parse(text.to_string()),
+            Processor {
+                parser: Some(parser),
+            } => parser.parse(text.to_string()),
+            _ => Err("".to_string()),
         }
     }
 }
