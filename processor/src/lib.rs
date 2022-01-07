@@ -1,28 +1,27 @@
 mod formatter;
+mod none_transformer;
 mod parser;
+mod processable;
 mod transformer;
+mod with_transformer;
 
-use formatter::Formatter;
-use parser::Parser;
-use transformer::{compose_transformer, Transformer};
+use none_transformer::NoneTransformer;
+use processable::{Formattable, Parsable, Processable, Transformable};
+use transformer::compose_transformer;
+use with_transformer::WithTransformer;
 
-pub struct Processor<T, R>
+pub enum Processor<T, R>
 where
-    T: 'static,
+    T: 'static + Clone,
     R: 'static,
 {
-    parser: Option<Box<dyn Parser<T>>>,
-    transformer: Option<Box<dyn Transformer<T, T>>>,
-    formatter: Option<Box<dyn Formatter<T, R>>>,
+    NoneTransformer(NoneTransformer<T, R>),
+    WithTransformer(WithTransformer<T, R>),
 }
 
-impl<T, R> Processor<T, R> {
+impl<T: Clone, R> Processor<T, R> {
     pub fn new() -> Processor<T, R> {
-        Processor {
-            parser: None,
-            transformer: None,
-            formatter: None,
-        }
+        Processor::NoneTransformer(NoneTransformer::new())
     }
 
     pub fn parser<F>(&self, f: F) -> Processor<T, R>
@@ -31,26 +30,17 @@ impl<T, R> Processor<T, R> {
         T: Clone,
         R: Clone,
     {
-        Processor {
-            parser: Some(f.into()),
-            transformer: match &self.transformer {
-                Some(v) => Some(v.clone()),
-                None => None,
-            },
-            formatter: match &self.formatter {
-                Some(v) => Some(v.clone()),
-                None => None,
-            },
-        }
-    }
-
-    pub fn parse(&self, text: &str) -> Result<T, String> {
         match self {
-            Processor {
-                parser: Some(parser),
-                ..
-            } => parser.parse(text),
-            _ => Err("".to_string()),
+            Processor::NoneTransformer(a) => {
+                let mut ret = a.clone();
+                ret.parser = Some(f.into());
+                Processor::NoneTransformer(ret)
+            }
+            Processor::WithTransformer(a) => {
+                let mut ret = a.clone();
+                ret.parser = Some(f.into());
+                Processor::WithTransformer(ret)
+            }
         }
     }
 
@@ -60,26 +50,17 @@ impl<T, R> Processor<T, R> {
         T: Clone,
         R: Clone,
     {
-        Processor {
-            parser: match &self.parser {
-                Some(v) => Some(v.clone()),
-                None => None,
-            },
-            transformer: match &self.transformer {
-                Some(v) => Some(v.clone()),
-                None => None,
-            },
-            formatter: Some(f.into()),
-        }
-    }
-
-    pub fn format(&self, ast: &T) -> Result<R, String> {
         match self {
-            Processor {
-                formatter: Some(formatter),
-                ..
-            } => formatter.format(ast),
-            _ => Err("".to_string()),
+            Processor::NoneTransformer(a) => {
+                let mut ret = a.clone();
+                ret.formatter = Some(f.into());
+                Processor::NoneTransformer(ret)
+            }
+            Processor::WithTransformer(a) => {
+                let mut ret = a.clone();
+                ret.formatter = Some(f.into());
+                Processor::WithTransformer(ret)
+            }
         }
     }
 
@@ -88,39 +69,52 @@ impl<T, R> Processor<T, R> {
         F: Fn(&T) -> Result<T, String> + 'static + Clone,
         T: Clone,
     {
-        Processor {
-            parser: match &self.parser {
-                Some(v) => Some(v.clone()),
-                None => None,
-            },
-            transformer: match &self.transformer {
-                Some(v) => Some(compose_transformer(v.clone(), f.into())),
-                None => Some(f.into()),
-            },
-            formatter: match &self.formatter {
-                Some(v) => Some(v.clone()),
-                None => None,
-            },
+        match self {
+            Processor::NoneTransformer(a) => Processor::WithTransformer(WithTransformer {
+                parser: a.parser.clone(),
+                transformer: Some(f.into()),
+                formatter: a.formatter.clone(),
+            }),
+            Processor::WithTransformer(a) => {
+                let mut ret = a.clone();
+                ret.transformer = Some(compose_transformer(
+                    a.transformer.clone().unwrap(),
+                    f.into(),
+                ));
+                Processor::WithTransformer(ret)
+            }
         }
     }
 
-    pub fn transform(&self, ast: &T) -> Result<T, String> {
+    pub fn parse(&self, text: &str) -> Result<T, String> {
         match self {
-            Processor {
-                transformer: Some(transformer),
-                ..
-            } => transformer.transform(ast),
-            _ => Err("".to_string()),
+            Processor::NoneTransformer(a) => a.parse(text),
+            Processor::WithTransformer(a) => a.parse(text),
+        }
+    }
+
+    pub fn transform(&self, ast: &T) -> Result<T, String>
+    where
+        T: Clone,
+    {
+        match self {
+            Processor::NoneTransformer(a) => a.transform(ast),
+            Processor::WithTransformer(a) => a.transform(ast),
+        }
+    }
+
+    pub fn format(&self, ast: &T) -> Result<R, String> {
+        match self {
+            Processor::NoneTransformer(a) => a.format(ast),
+            Processor::WithTransformer(a) => a.format(ast),
         }
     }
 
     pub fn process(&self, text: &str) -> Result<R, String> {
-        let ast = self.parse(text)?;
-        let ast = match &self.transformer {
-            Some(transformer) => transformer.transform(&ast),
-            None => Ok(ast),
-        };
-        self.format(&ast?)
+        match self {
+            Processor::NoneTransformer(a) => a.process(text),
+            Processor::WithTransformer(a) => a.process(text),
+        }
     }
 }
 
