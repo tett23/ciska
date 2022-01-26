@@ -49,6 +49,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
+name = "ciska"
+version = "0.1.0"
+dependencies = [
+ "book-exporter",
+ "processor",
+ "prose-parser",
+]
+
+[[package]]
 name = "console"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -155,15 +164,6 @@ name = "itoa"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aab8fc367588b89dcee83ab0fd66b72b50b72fa1904d7095045ace2b0c81c35"
-
-[[package]]
-name = "kamo2"
-version = "0.1.0"
-dependencies = [
- "book-exporter",
- "processor",
- "prose-parser",
-]
 
 [[package]]
 name = "lazy_static"
