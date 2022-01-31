@@ -46,50 +46,54 @@ pub fn establish_connection() -> SqliteConnection {
 }
 
 pub fn books() -> Vec<Novel> {
-    use crate::schemas;
-    use crate::schemas::episode_source_hameln::dsl::*;
-    use crate::schemas::episode_source_kakuyomu::dsl::*;
-    use crate::schemas::episode_source_narou::dsl::*;
-    use crate::schemas::episode_source_novel18::dsl::*;
-    use crate::schemas::episodes::dsl::*;
-    use crate::schemas::novels::dsl::*;
-
-    let connection = establish_connection();
-    let results = novels
-        .limit(5)
-        .load::<Novel>(&connection)
-        .expect("Error loading posts");
-    dbg!(&results);
-
-    let novel = results.first().unwrap();
-
-    // let episodes = episodes
-    //     .filter(novel_id.eq(novel.id))
-    //     .load::<Episode>(&connection);
-    dbg!(&episodes);
-    match novel.novel_source_name.as_str() {
-        "narou" => {
-            let aaaa = episodes
-                .filter(schemas::episodes::novel_id.eq(novel.id))
-                .load::<Episode>(&connection)
-                .unwrap()
-                .iter()
-                .map(|episode| {
-                    episode_source_narou
-                        .filter(schemas::episode_source_narou::episode_id.eq(episode.id))
-                        .first::<EpisodeSourceNarou>()
-                })
-                .collect::<Vec<_>>(conn);
-        }
-        "novel18" => {}
-        "hameln" => {}
-        "kakuyomu" => {}
-    }
-
-    let episode_origin = episodes
-        .filter(novel_id.eq(novel.id))
-        .load::<Episode>(&connection);
-    dbg!(&episodes);
-
     vec![]
 }
+
+// pub fn books() -> Vec<Novel> {
+//     use crate::schemas;
+//     use crate::schemas::episode_source_hameln::dsl::*;
+//     use crate::schemas::episode_source_kakuyomu::dsl::*;
+//     use crate::schemas::episode_source_narou::dsl::*;
+//     use crate::schemas::episode_source_novel18::dsl::*;
+//     use crate::schemas::episodes::dsl::*;
+//     use crate::schemas::novels::dsl::*;
+
+//     let connection = establish_connection();
+//     let results = novels
+//         .limit(5)
+//         .load::<Novel>(&connection)
+//         .expect("Error loading posts");
+//     dbg!(&results);
+
+//     let novel = results.first().unwrap();
+
+//     // let episodes = episodes
+//     //     .filter(novel_id.eq(novel.id))
+//     //     .load::<Episode>(&connection);
+//     dbg!(&episodes);
+//     match novel.novel_source_name.as_str() {
+//         "narou" => {
+//             let aaaa = episodes
+//                 .filter(schemas::episodes::novel_id.eq(novel.id))
+//                 .load::<Episode>(&connection)
+//                 .unwrap()
+//                 .iter()
+//                 .map(|episode| {
+//                     episode_source_narou
+//                         .filter(schemas::episode_source_narou::episode_id.eq(episode.id))
+//                         .first::<EpisodeSourceNarou>()
+//                 })
+//                 .collect::<Vec<_>>(conn);
+//         }
+//         "novel18" => {}
+//         "hameln" => {}
+//         "kakuyomu" => {}
+//     }
+
+//     let episode_origin = episodes
+//         .filter(novel_id.eq(novel.id))
+//         .load::<Episode>(&connection);
+//     dbg!(&episodes);
+
+//     vec![]
+// }
