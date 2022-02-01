@@ -6,6 +6,9 @@
   "author": "tett23 <tett23@gmail.com>",
   "license": "MIT",
   "private": true,
+  "scripts": {
+    "start": ""
+  },
   "workspaces": [
     "packages/*"
   ]
