@@ -27,9 +27,20 @@ app.on('ready', async () => {
     callback(req.url.replace(/^file:\/\//, ''));
   });
 
+  const indexPath = join(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    'menu-frontend',
+    'lib',
+    'cjs',
+    'index.html',
+  );
+  console.log({ a: indexPath });
   mainWindow.loadURL(
     format({
-      pathname: join(__dirname, 'index.html'),
+      pathname: indexPath,
       protocol: 'file:',
       slashes: true,
     }),

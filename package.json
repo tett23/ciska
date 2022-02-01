@@ -7,9 +7,12 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "start": "",
+    "start": "run-s build:dependencies start:electron:dev",
+    "start:electron:dev": "yarn workspace @ciska/app start",
     "build:dependencies": "run-p build:dependencies:*",
-    "build:dependencies:app": "yarn workspace build:app"
+    "build:dependencies:app": "yarn workspace @ciska/app build",
+    "build:dependencies:menu-frontend": "yarn workspace @ciska/menu-frontend build",
+    "clean": "yarn workspaces run clean"
   },
   "devDependencies": {
     "esbuild": "^0.14.16",

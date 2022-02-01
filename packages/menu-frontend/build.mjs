@@ -25,3 +25,6 @@ await build({
   watch,
   sourcemap: true,
 });
+
+await fs.copyFile('./src/index.html', './lib/cjs/index.html');
+await fs.copyFile('./src/index.html', './lib/esm/index.html');
