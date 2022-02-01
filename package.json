@@ -7,7 +7,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "start": "run-s build:dependencies start:electron:dev",
+    "start": "run-s clean build:dependencies start:electron:dev",
     "start:electron:dev": "yarn workspace @ciska/app start",
     "build:dependencies": "run-p build:dependencies:*",
     "build:dependencies:app": "yarn workspace @ciska/app build",
