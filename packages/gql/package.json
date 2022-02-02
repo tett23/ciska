@@ -1,0 +1,21 @@
+{
+  "name": "@ciska/gql",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "tett23",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "clean": "rimraf lib",
+    "start": "run-s build start:dev",
+    "start:dev": "electron ./lib/cjs/index.js",
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "lint": "run-p lint:ts",
+    "lint:ts": "tsc --noEmit",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "ci": "lint"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
