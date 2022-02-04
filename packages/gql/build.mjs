@@ -1,8 +1,8 @@
 import { build } from 'esbuild';
 import glob from 'glob';
 import process from 'process';
-import fs from 'fs/promises';
 
+const env = process.env.NODE_ENV ?? 'development';
 const entryPoints = glob.sync('./src/**/*.ts');
 const watch = process.argv.some((item) => item === '--watch');
 
@@ -14,6 +14,9 @@ await build({
   format: 'cjs',
   watch,
   sourcemap: true,
+  define: {
+    'process.env.NODE_ENV': `\"${env}\"`,
+  },
 });
 
 await build({
@@ -24,7 +27,7 @@ await build({
   format: 'esm',
   watch,
   sourcemap: true,
+  define: {
+    'process.env.NODE_ENV': `\"${env}\"`,
+  },
 });
-
-await fs.copyFile('./src/index.html', './lib/cjs/index.html');
-await fs.copyFile('./src/index.html', './lib/esm/index.html');

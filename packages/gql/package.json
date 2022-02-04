@@ -16,6 +16,8 @@
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "ci": "lint"
   },
-  "dependencies": {},
+  "dependencies": {
+    "graphql": "^16.3.0"
+  },
   "devDependencies": {}
 }
