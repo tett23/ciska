@@ -19,16 +19,14 @@ pub fn parse(document: &str) -> Result<Node, String> {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged, rename_all = "camelCase")]
 pub enum Node {
-    Root(Vec<Node>),
-    Expr(),
-    Symbol(),
-    Literal(),
-    IntLiteral(i64),
-    AddEffect(i64),
+    Root(ScopeValue),
+    Scope(ScopeValue),
     Stmt(Stmt),
-    Keyword(),
     Comment(Comment),
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ScopeValue(pub Vec<Stmt>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Stmt {
@@ -99,10 +97,15 @@ pub enum Value {
 pub struct Comment(String);
 
 impl Expr {
-    pub fn eval(&self, vm: &mut Vm) -> Value {
+    pub fn eval(&self, vm: &Vm) -> (Vm, Value) {
         match self {
-            Expr::Id(v) => v.clone(),
-            Expr::Op(op, lhs, rhs) => op.apply(lhs.eval(vm), rhs.eval(vm)),
+            Expr::Id(v) => (vm.clone(), v.clone()),
+            Expr::Op(op, lhs, rhs) => {
+                let (vm, lhs_value) = lhs.eval(vm);
+                let (vm, rhs_value) = rhs.eval(&vm);
+
+                (vm.clone(), op.apply(lhs_value, rhs_value))
+            }
         }
     }
 }
@@ -110,6 +113,7 @@ impl Expr {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Scope {
     type_symbols: Vec<TypeSymbol>,
+    return_value: Value,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -119,8 +123,31 @@ pub struct Vm {
 
 impl Vm {
     pub fn new() -> Self {
+        Self { stack: Vec::new() }
+    }
+
+    pub fn push_stack(&mut self) {
+        self.stack.push(Scope::new())
+    }
+
+    pub fn pop_stack(&mut self) -> Option<Scope> {
+        self.stack.pop()
+    }
+
+    pub fn current_scope(&mut self) -> &mut Scope {
+        self.stack.last_mut().unwrap()
+    }
+
+    // pub fn current_return(&mut self) -> Value {
+    //     self.current_scope().return_value()
+    // }
+}
+
+impl Scope {
+    pub fn new() -> Self {
         Self {
             type_symbols: Vec::new(),
+            return_value: Value::Empty,
         }
     }
 
@@ -133,13 +160,28 @@ impl Vm {
 
         symbol
     }
+
+    pub fn push_return_value(&mut self, value: &Value) {
+        self.return_value = value.clone()
+    }
+
+    pub fn return_value(&self) -> Value {
+        self.return_value.clone()
+    }
 }
 
 impl TypeExpr {
-    pub fn eval(&self, vm: &mut Vm) -> TypeValue {
+    pub fn eval(&self, vm: &Vm) -> (Vm, TypeValue) {
         match self {
             Self::Bind(symbol,kind )=>{
-                TypeValue::TypeSymbol(vm.push_type_symbol(symbol, kind))
+                let mut vm = vm.clone();
+                let a =vm.current_scope().push_type_symbol(symbol, kind);
+
+                (
+                    vm.clone(),
+                    TypeValue::TypeSymbol(a)
+                )
+
             }
             _ => unimplemented!()
             // Expr::Id(v) => v.clone(),
@@ -151,6 +193,35 @@ impl TypeExpr {
 impl Stmt {
     pub fn eval(&self) -> Value {
         Value::Empty
+    }
+}
+
+impl ScopeValue {
+    pub fn eval(&self, vm: &Vm) -> Value {
+        let mut vm = vm.clone();
+        vm.push_stack();
+
+        let mut vm = self.0.iter().fold(vm, |vm, stmt| {
+            let vm = match stmt {
+                Stmt::Expr(expr) => {
+                    let (mut vm, value) = expr.eval(&vm);
+                    vm.current_scope().push_return_value(&value);
+
+                    vm
+                }
+                Stmt::TypeExpr(expr) => {
+                    let (vm, _) = expr.eval(&vm);
+
+                    vm
+                }
+            };
+
+            vm
+        });
+
+        let scope = vm.pop_stack();
+
+        scope.unwrap().return_value()
     }
 }
 
@@ -205,7 +276,7 @@ fn parse_stmt(pair: &Pair<'_, Rule>) -> Stmt {
 
     match pair.as_rule() {
         Rule::expr => Stmt::Expr(parse_expr(&pair)),
-        Rule::typeStmts => Stmt::TypeExpr(parse_type_expr(&pair)),
+        Rule::typeStmt => Stmt::TypeExpr(parse_type_expr(&pair)),
         _ => panic!(),
     }
 }
@@ -352,15 +423,48 @@ fn parse_comment(pair: &Pair<'_, Rule>) -> Comment {
     Comment(pair.as_span().as_str().to_string())
 }
 
+fn parse_stmt_or_comment(pair: &Pair<'_, Rule>) -> Option<Stmt> {
+    match pair.as_rule() {
+        Rule::commentLine => None,
+        Rule::stmt => Some(parse_stmt(pair)),
+        _ => {
+            unimplemented!()
+        }
+    }
+}
+
+fn parse_scope(pair: &Pair<'_, Rule>) -> ScopeValue {
+    match pair.as_rule() {
+        Rule::rootScope => {
+            let pairs = pair.clone().into_inner();
+            let a = pairs
+                .map(|item| parse_stmt_or_comment(&item))
+                .filter(|item| item.is_some())
+                .map(|item| item.unwrap())
+                .collect::<Vec<_>>();
+            ScopeValue(a)
+        }
+        _ => {
+            unimplemented!()
+        }
+    }
+    // Comment(pair.as_span().as_str().to_string())
+}
+
 pub fn to_node(pair: &Pair<'_, Rule>) -> Node {
     match pair.as_rule() {
         Rule::document => {
             let pairs = pair.clone().into_inner();
-            let child_nodes = pairs.map(|item| to_node(&item)).collect::<Vec<_>>();
-
-            Node::Root(child_nodes)
+            let pair = pairs.clone().next().unwrap();
+            Node::Scope(parse_scope(&pair))
         }
-        Rule::stmt => Node::Stmt(parse_stmt(pair)),
+        // Rule::rootScope => {
+        //     let pairs = pair.clone().into_inner();
+        //     let child_nodes = pairs.map(|item| parse_stmt(&item)).collect::<Vec<_>>();
+
+        //     Node::Scope(ScopeValue(child_nodes))
+        // }
+        // Rule::stmt => Node::Stmt(parse_stmt(pair)),
         // Rule::expr => {
         //     let pairs = pair.clone().into_inner();
         //     let child_nodes = pairs.map(|item| to_node(&item)).collect::<Vec<_>>();

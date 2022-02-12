@@ -108,7 +108,7 @@ letStmt = { "let" ~ (assignExpr | bindExpr) }
 
 // scope
 
-stmtOrComment = {stmt|commentLine}
+stmtOrComment = _{stmt|commentLine}
 stmtTerminal = { ";" }
 scopeInner = _{
   (
