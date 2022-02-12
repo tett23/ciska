@@ -10,7 +10,7 @@ idLiteral = { "Id" }
 emptyLiteral = { "Empty" }
 intContextTypeLiteral = { "Int" }
 intExpr = _{ intLiteral | ("(" ~ ws? ~ intLiteral ~ ws? ~ ")") }
-addLiteral = { "+" ~ intExpr | idLiteral | emptyLiteral }
+addLiteral = { "+" ~ intExpr }
 stateLiteral = { idLiteral | emptyLiteral | varSymbol }
 transitionLiteral = { "=>" ~ stateLiteral }
 contextTypeLiteral = { varSymbol ~ ws? ~ ":" ~ ws? ~ effectTypeExpr }

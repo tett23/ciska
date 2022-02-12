@@ -50,11 +50,16 @@ pub struct AddEffect(i64);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IntLiteral(i64);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransitionEffect(String);
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransitionLiteral(String);
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Value {
     Id,
     Empty,
     AddEffect(AddEffect),
+    TransitionEffect(TransitionEffect),
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -71,8 +76,7 @@ impl Expr {
 
 impl Stmt {
     pub fn eval(&self) -> Value {
-        // NOTE: voidでは
-        Value::Id
+        Value::Empty
     }
 }
 
@@ -91,6 +95,13 @@ fn eval_compose(lhs: Value, rhs: Value) -> Value {
         (Value::Id, Value::AddEffect(rls)) => Value::AddEffect(rls),
         (Value::AddEffect(lhs), Value::AddEffect(rhs)) => {
             Value::AddEffect(AddEffect(lhs.0 + rhs.0))
+        }
+        (Value::TransitionEffect(lhs), Value::Id) => Value::TransitionEffect(lhs),
+        (Value::Id, Value::TransitionEffect(rls)) => Value::TransitionEffect(rls),
+        (Value::TransitionEffect(_lhs), Value::TransitionEffect(rhs)) => {
+            // NOTE: 遷移可能かのチェックをする
+            // Effect単体でTransitionの合成できないのではという疑惑ある
+            Value::TransitionEffect(TransitionEffect(rhs.0))
         }
         _ => Value::Empty,
     }
@@ -177,7 +188,15 @@ fn parse_expr(pair: &Pair<'_, Rule>) -> Expr {
 }
 
 fn parse_term(pair: &Pair<'_, Rule>) -> Expr {
-    Expr::Id(Value::AddEffect(parse_add_effect(pair)))
+    let a = pair.clone().into_inner().next().unwrap();
+
+    Expr::Id(match a.as_rule() {
+        Rule::addLiteral => Value::AddEffect(parse_add_effect(&a)),
+        Rule::transitionLiteral => Value::TransitionEffect(parse_transition_effect(&a)),
+        Rule::idLiteral => Value::Id,
+        Rule::emptyLiteral => Value::Empty,
+        _ => panic!(),
+    })
 }
 
 fn parse_add_effect(pair: &Pair<'_, Rule>) -> AddEffect {
@@ -189,6 +208,17 @@ fn parse_add_effect(pair: &Pair<'_, Rule>) -> AddEffect {
 
 fn parse_int_literal(pair: &Pair<'_, Rule>) -> IntLiteral {
     IntLiteral(pair.as_span().as_str().parse::<i64>().unwrap())
+}
+
+fn parse_transition_effect(pair: &Pair<'_, Rule>) -> TransitionEffect {
+    let a = pair.clone().into_inner().next().unwrap();
+    let a = parse_transition_literal(&a);
+
+    TransitionEffect(a.0)
+}
+
+fn parse_transition_literal(pair: &Pair<'_, Rule>) -> TransitionLiteral {
+    TransitionLiteral(pair.as_span().as_str().to_string())
 }
 
 fn parse_comment(pair: &Pair<'_, Rule>) -> Comment {
