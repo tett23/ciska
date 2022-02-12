@@ -41,9 +41,10 @@ pub enum Expr {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Op {
-    // Id,
-    // Empty,
     Compose,
+    Apply,
+    Reduce,
+    Push,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AddEffect(i64);
@@ -84,6 +85,9 @@ impl Op {
     pub fn apply(&self, lhs: Value, rhs: Value) -> Value {
         match (self, lhs, rhs) {
             (Op::Compose, lhs, rhs) => eval_compose(lhs, rhs),
+            (Op::Apply, _lhs, _rhs) => unimplemented!(),
+            (Op::Reduce, _lhs, _rhs) => unimplemented!(),
+            (Op::Push, _lhs, _rhs) => unimplemented!(),
         }
     }
 }
@@ -124,11 +128,6 @@ impl From<&Pair<'_, Rule>> for Node {
 }
 
 fn parse_stmt(pair: &Pair<'_, Rule>) -> Stmt {
-    let a = pair
-        .clone()
-        .into_inner()
-        .map(|item| parse_expr(&item))
-        .collect::<Vec<_>>();
     let a = pair.clone().into_inner().next().unwrap();
     let a = parse_expr(&a);
 
@@ -136,9 +135,12 @@ fn parse_stmt(pair: &Pair<'_, Rule>) -> Stmt {
 }
 
 fn parse_op(pair: &Pair<'_, Rule>) -> Op {
-    // Compose以外実装されていない
+    let pair = pair.clone().into_inner().next().unwrap();
     match pair.as_rule() {
-        Rule::op => Op::Compose,
+        Rule::composeOp => return Op::Compose,
+        Rule::applyOp => return Op::Apply,
+        Rule::reduceOp => return Op::Reduce,
+        Rule::pushOp => return Op::Push,
         _ => unimplemented!(),
     }
 }
