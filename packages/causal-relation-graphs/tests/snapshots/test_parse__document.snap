@@ -1,42 +1,1425 @@
 ---
-source: prose-parser/tests/test_parse.rs
-assertion_line: 51
-expression: "prose_parser::parse(content.as_str()).unwrap()"
+source: packages/causal-relation-graphs/tests/test_parse.rs
+assertion_line: 1438
+expression: "causal_relation_graphs::parse(content.as_str()).unwrap()"
 
 ---
 name: document
 children:
-  - name: heading
+  - name: stmt
     children:
-      - name: heading_begin
-      - name: text
-        value: foo
-  - name: line_break
-  - name: paragraph
-    children:
-      - name: text
-        value: bar
-  - name: line_break
-  - name: block_comment
-    children:
-      - name: text
-        value: block comment
-  - name: line_break
-  - name: paragraph
-    children:
-      - name: tag
+      - name: defineStmts
         children:
-          - name: text
-            value: tag-name
-      - name: tag
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: stateMachineKeyword
+              - name: typeExpr
+                children:
+                  - name: typeExpr
+                    children:
+                      - name: typeLiteral
+                        children:
+                          - name: stateMachineTypeExpr
+                            children:
+                              - name: stateMachineTypeLiteral
+                                children:
+                                  - name: stateLiteral
+                                    children:
+                                      - name: idLiteral
+                                  - name: stateLiteral
+                                    children:
+                                      - name: varSymbol
+                  - name: typeOp
+                    children:
+                      - name: typeAndOp
+                  - name: typeExpr
+                    children:
+                      - name: typeExpr
+                        children:
+                          - name: typeLiteral
+                            children:
+                              - name: stateMachineTypeExpr
+                                children:
+                                  - name: stateMachineTypeLiteral
+                                    children:
+                                      - name: stateLiteral
+                                        children:
+                                          - name: idLiteral
+                                      - name: stateLiteral
+                                        children:
+                                          - name: varSymbol
+                      - name: typeOp
+                        children:
+                          - name: typeAndOp
+                      - name: typeExpr
+                        children:
+                          - name: typeSymbol
+  - name: stmt
+    children:
+      - name: defineStmts
         children:
-          - name: text
-            value: tag2
-      - name: text
-        value: "paragraph text "
-      - name: inline_comment
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: stateMachineKeyword
+              - name: typeExpr
+                children:
+                  - name: typeExpr
+                    children:
+                      - name: typeLiteral
+                        children:
+                          - name: stateMachineTypeExpr
+                            children:
+                              - name: stateMachineTypeLiteral
+                                children:
+                                  - name: stateLiteral
+                                    children:
+                                      - name: idLiteral
+                                  - name: stateLiteral
+                                    children:
+                                      - name: varSymbol
+                  - name: typeOp
+                    children:
+                      - name: typeAndOp
+                  - name: typeExpr
+                    children:
+                      - name: typeExpr
+                        children:
+                          - name: typeLiteral
+                            children:
+                              - name: stateMachineTypeExpr
+                                children:
+                                  - name: stateMachineTypeLiteral
+                                    children:
+                                      - name: stateLiteral
+                                        children:
+                                          - name: idLiteral
+                                      - name: stateLiteral
+                                        children:
+                                          - name: varSymbol
+                      - name: typeOp
+                        children:
+                          - name: typeAndOp
+                      - name: typeExpr
+                        children:
+                          - name: typeSymbol
+  - name: stmt
+    children:
+      - name: defineStmts
         children:
-          - name: text
-            value: inline comment
-  - name: line_break
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: stateMachineKeyword
+              - name: typeExpr
+                children:
+                  - name: typeExpr
+                    children:
+                      - name: typeLiteral
+                        children:
+                          - name: stateMachineTypeExpr
+                            children:
+                              - name: stateMachineTypeLiteral
+                                children:
+                                  - name: stateLiteral
+                                    children:
+                                      - name: idLiteral
+                                  - name: stateLiteral
+                                    children:
+                                      - name: varSymbol
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: snapshotKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: snapshotTypeExpr
+                        children:
+                          - name: snapshotTypeLiteral
+                            children:
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+                                  - name: effectTypeExpr
+                                    children:
+                                      - name: effectTypeLiteral
+                                        children:
+                                          - name: intContextTypeLiteral
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+                                  - name: effectTypeExpr
+                                    children:
+                                      - name: effectTypeLiteral
+                                        children:
+                                          - name: stateMachineExpr
+                                            children:
+                                              - name: typeLiteral
+                                                children:
+                                                  - name: stateMachineTypeExpr
+                                                    children:
+                                                      - name: stateMachineTypeLiteral
+                                                        children:
+                                                          - name: stateLiteral
+                                                            children:
+                                                              - name: idLiteral
+                                                          - name: stateLiteral
+                                                            children:
+                                                              - name: varSymbol
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: bindTypeExpr
+            children:
+              - name: typeSymbol
+              - name: typeKeywords
+                children:
+                  - name: stateMachineKeyword
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: stateMachineKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: stateMachineTypeExpr
+                        children:
+                          - name: stateMachineTypeLiteral
+                            children:
+                              - name: stateLiteral
+                                children:
+                                  - name: idLiteral
+                              - name: stateLiteral
+                                children:
+                                  - name: varSymbol
+                              - name: stateLiteral
+                                children:
+                                  - name: varSymbol
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: stateMachineKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: stateMachineTypeExpr
+                        children:
+                          - name: stateMachineTypeLiteral
+                            children:
+                              - name: stateLiteral
+                                children:
+                                  - name: idLiteral
+                              - name: stateLiteral
+                                children:
+                                  - name: varSymbol
+                              - name: stateLiteral
+                                children:
+                                  - name: varSymbol
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: contextKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: contextedTypeExpr
+                        children:
+                          - name: contextedTypeLiteral
+                            children:
+                              - name: varSymbol
+                              - name: effectTypeExpr
+                                children:
+                                  - name: effectTypeLiteral
+                                    children:
+                                      - name: intContextTypeLiteral
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: snapshotKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: snapshotTypeExpr
+                        children:
+                          - name: snapshotTypeLiteral
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: snapshotKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: snapshotTypeExpr
+                        children:
+                          - name: snapshotTypeLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: varSymbol
+          - name: op
+            children:
+              - name: reduceOp
+          - name: expr
+            children:
+              - name: snapshotLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: sliceLiteral
+          - name: op
+            children:
+              - name: pushOp
+          - name: expr
+            children:
+              - name: contextEffectLiteral
+                children:
+                  - name: contextExpr
+                    children:
+                      - name: varSymbol
+                  - name: effectExpr
+                    children:
+                      - name: addLiteral
+  - name: stmt
+    children:
+      - name: letStmt
+        children:
+          - name: assignExpr
+            children:
+              - name: bindExpr
+                children:
+                  - name: varSymbol
+                  - name: bindValueTypeExpr
+                    children:
+                      - name: bindKeywords
+              - name: expr
+                children:
+                  - name: varSymbol
+                  - name: op
+                    children:
+                      - name: reduceOp
+                  - name: expr
+                    children:
+                      - name: snapshotLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: snapshotLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: snapshotLiteral
+            children:
+              - name: snapshotItemLiteral
+                children:
+                  - name: contextExpr
+                    children:
+                      - name: varSymbol
+                  - name: snapshotValueExpr
+                    children:
+                      - name: snapshotValueLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: snapshotLiteral
+            children:
+              - name: snapshotItemLiteral
+                children:
+                  - name: contextExpr
+                    children:
+                      - name: contextLiteral
+                        children:
+                          - name: contextedTypeLiteral
+                            children:
+                              - name: varSymbol
+                              - name: effectTypeExpr
+                                children:
+                                  - name: effectTypeLiteral
+                                    children:
+                                      - name: intContextTypeLiteral
+                  - name: snapshotValueExpr
+                    children:
+                      - name: snapshotValueLiteral
+  - name: comment
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: snapshotLiteral
+            children:
+              - name: snapshotItemLiteral
+                children:
+                  - name: contextExpr
+                    children:
+                      - name: varSymbol
+                  - name: snapshotValueExpr
+                    children:
+                      - name: snapshotValueLiteral
+              - name: snapshotItemLiteral
+                children:
+                  - name: contextExpr
+                    children:
+                      - name: varSymbol
+                  - name: snapshotValueExpr
+                    children:
+                      - name: snapshotValueLiteral
+  - name: stmt
+    children:
+      - name: letStmt
+        children:
+          - name: bindExpr
+            children:
+              - name: varSymbol
+              - name: bindValueTypeExpr
+                children:
+                  - name: bindKeywords
+  - name: stmt
+    children:
+      - name: letStmt
+        children:
+          - name: assignExpr
+            children:
+              - name: bindExpr
+                children:
+                  - name: varSymbol
+                  - name: bindValueTypeExpr
+                    children:
+                      - name: bindKeywords
+              - name: expr
+                children:
+                  - name: snapshotLiteral
+                    children:
+                      - name: snapshotItemLiteral
+                        children:
+                          - name: contextExpr
+                            children:
+                              - name: varSymbol
+                          - name: snapshotValueExpr
+                            children:
+                              - name: snapshotValueLiteral
+                      - name: snapshotItemLiteral
+                        children:
+                          - name: contextExpr
+                            children:
+                              - name: varSymbol
+                          - name: snapshotValueExpr
+                            children:
+                              - name: snapshotValueLiteral
+                                children:
+                                  - name: varSymbol
+                      - name: snapshotItemLiteral
+                        children:
+                          - name: contextExpr
+                            children:
+                              - name: varSymbol
+                          - name: snapshotValueExpr
+                            children:
+                              - name: snapshotValueLiteral
+  - name: stmt
+    children:
+      - name: letStmt
+        children:
+          - name: bindExpr
+            children:
+              - name: varSymbol
+              - name: bindValueTypeExpr
+                children:
+                  - name: bindKeywords
+  - name: stmt
+    children:
+      - name: letStmt
+        children:
+          - name: assignExpr
+            children:
+              - name: bindExpr
+                children:
+                  - name: varSymbol
+                  - name: bindValueTypeExpr
+                    children:
+                      - name: bindKeywords
+              - name: expr
+                children:
+                  - name: contextedTypeLiteral
+                    children:
+                      - name: varSymbol
+                      - name: effectTypeExpr
+                        children:
+                          - name: effectTypeLiteral
+                            children:
+                              - name: intContextTypeLiteral
+  - name: stmt
+    children:
+      - name: letStmt
+        children:
+          - name: assignExpr
+            children:
+              - name: bindExpr
+                children:
+                  - name: varSymbol
+                  - name: bindValueTypeExpr
+                    children:
+                      - name: bindKeywords
+              - name: expr
+                children:
+                  - name: contextEffectLiteral
+                    children:
+                      - name: contextExpr
+                        children:
+                          - name: varSymbol
+                      - name: effectExpr
+                        children:
+                          - name: addLiteral
+  - name: stmt
+    children:
+      - name: letStmt
+        children:
+          - name: bindExpr
+            children:
+              - name: varSymbol
+              - name: bindValueTypeExpr
+                children:
+                  - name: bindKeywords
+  - name: stmt
+    children:
+      - name: letStmt
+        children:
+          - name: assignExpr
+            children:
+              - name: bindExpr
+                children:
+                  - name: varSymbol
+                  - name: bindValueTypeExpr
+                    children:
+                      - name: bindKeywords
+              - name: expr
+                children:
+                  - name: addLiteral
+  - name: stmt
+    children:
+      - name: letStmt
+        children:
+          - name: bindExpr
+            children:
+              - name: varSymbol
+              - name: bindValueTypeExpr
+                children:
+                  - name: bindKeywords
+  - name: stmt
+    children:
+      - name: letStmt
+        children:
+          - name: assignExpr
+            children:
+              - name: bindExpr
+                children:
+                  - name: varSymbol
+                  - name: bindValueTypeExpr
+                    children:
+                      - name: bindKeywords
+              - name: expr
+                children:
+                  - name: sliceLiteral
+                    children:
+                      - name: contextEffectExpr
+                        children:
+                          - name: contextEffectLiteral
+                            children:
+                              - name: contextExpr
+                                children:
+                                  - name: varSymbol
+                              - name: effectExpr
+                                children:
+                                  - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: sliceLiteral
+            children:
+              - name: contextEffectExpr
+                children:
+                  - name: contextEffectLiteral
+                    children:
+                      - name: contextExpr
+                        children:
+                          - name: varSymbol
+                      - name: effectExpr
+                        children:
+                          - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: sliceLiteral
+            children:
+              - name: contextEffectExpr
+                children:
+                  - name: contextEffectLiteral
+                    children:
+                      - name: contextExpr
+                        children:
+                          - name: contextLiteral
+                            children:
+                              - name: contextedTypeLiteral
+                                children:
+                                  - name: varSymbol
+                                  - name: effectTypeExpr
+                                    children:
+                                      - name: effectTypeLiteral
+                                        children:
+                                          - name: intContextTypeLiteral
+                      - name: effectExpr
+                        children:
+                          - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: sliceLiteral
+            children:
+              - name: contextEffectExpr
+                children:
+                  - name: contextEffectLiteral
+                    children:
+                      - name: contextExpr
+                        children:
+                          - name: varSymbol
+                      - name: effectExpr
+                        children:
+                          - name: addLiteral
+              - name: contextEffectExpr
+                children:
+                  - name: contextEffectLiteral
+                    children:
+                      - name: contextExpr
+                        children:
+                          - name: varSymbol
+                      - name: effectExpr
+                        children:
+                          - name: stateMachineLiteral
+                            children:
+                              - name: stateLiteral
+                                children:
+                                  - name: varSymbol
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: sliceLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: expr
+            children:
+              - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: addLiteral
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: addLiteral
+  - name: stmt
+    children:
+      - name: letStmt
+        children:
+          - name: bindExpr
+            children:
+              - name: varSymbol
+              - name: bindValueTypeExpr
+                children:
+                  - name: bindKeywords
+  - name: stmt
+    children:
+      - name: letStmt
+        children:
+          - name: assignExpr
+            children:
+              - name: bindExpr
+                children:
+                  - name: varSymbol
+                  - name: bindValueTypeExpr
+                    children:
+                      - name: bindKeywords
+              - name: expr
+                children:
+                  - name: addLiteral
+  - name: stmt
+    children:
+      - name: letStmt
+        children:
+          - name: assignExpr
+            children:
+              - name: bindExpr
+                children:
+                  - name: varSymbol
+                  - name: bindValueTypeExpr
+                    children:
+                      - name: bindKeywords
+              - name: expr
+                children:
+                  - name: sliceLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: expr
+            children:
+              - name: contextedTypeLiteral
+                children:
+                  - name: varSymbol
+                  - name: effectTypeExpr
+                    children:
+                      - name: effectTypeLiteral
+                        children:
+                          - name: intContextTypeLiteral
+              - name: op
+                children:
+                  - name: applyOp
+              - name: expr
+                children:
+                  - name: addLiteral
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: expr
+            children:
+              - name: addLiteral
+              - name: op
+                children:
+                  - name: composeOp
+              - name: expr
+                children:
+                  - name: addLiteral
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: expr
+                children:
+                  - name: addLiteral
+                  - name: op
+                    children:
+                      - name: composeOp
+                  - name: expr
+                    children:
+                      - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: addLiteral
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: expr
+                children:
+                  - name: addLiteral
+                  - name: op
+                    children:
+                      - name: composeOp
+                  - name: expr
+                    children:
+                      - name: expr
+                        children:
+                          - name: addLiteral
+                          - name: op
+                            children:
+                              - name: composeOp
+                          - name: expr
+                            children:
+                              - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: varSymbol
+          - name: op
+            children:
+              - name: applyOp
+          - name: expr
+            children:
+              - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: addLiteral
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: addLiteral
+              - name: op
+                children:
+                  - name: composeOp
+              - name: expr
+                children:
+                  - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: varSymbol
+          - name: op
+            children:
+              - name: applyOp
+          - name: expr
+            children:
+              - name: expr
+                children:
+                  - name: addLiteral
+                  - name: op
+                    children:
+                      - name: composeOp
+                  - name: expr
+                    children:
+                      - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: stateMachineLiteral
+            children:
+              - name: stateLiteral
+                children:
+                  - name: varSymbol
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: stateMachineLiteral
+                children:
+                  - name: stateLiteral
+                    children:
+                      - name: varSymbol
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: idLiteral
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: emptyLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: addLiteral
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: addLiteral
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: addLiteral
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: stateMachineLiteral
+                children:
+                  - name: stateLiteral
+                    children:
+                      - name: varSymbol
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: stateMachineKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: stateMachineTypeExpr
+                        children:
+                          - name: stateMachineTypeLiteral
+                            children:
+                              - name: stateLiteral
+                                children:
+                                  - name: idLiteral
+                              - name: stateLiteral
+                                children:
+                                  - name: varSymbol
+                              - name: stateLiteral
+                                children:
+                                  - name: varSymbol
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: snapshotKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: snapshotTypeExpr
+                        children:
+                          - name: snapshotTypeLiteral
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: snapshotKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: snapshotTypeExpr
+                        children:
+                          - name: snapshotTypeLiteral
+                            children:
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: bindTypeExpr
+            children:
+              - name: typeSymbol
+              - name: typeKeywords
+                children:
+                  - name: stateMachineKeyword
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: stateMachineKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: stateMachineTypeExpr
+                        children:
+                          - name: stateMachineTypeLiteral
+                            children:
+                              - name: stateLiteral
+                                children:
+                                  - name: idLiteral
+                              - name: stateLiteral
+                                children:
+                                  - name: varSymbol
+                              - name: stateLiteral
+                                children:
+                                  - name: varSymbol
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: contextKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: contextedTypeExpr
+                        children:
+                          - name: contextedTypeLiteral
+                            children:
+                              - name: varSymbol
+                              - name: effectTypeExpr
+                                children:
+                                  - name: effectTypeLiteral
+                                    children:
+                                      - name: intContextTypeLiteral
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: snapshotKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: snapshotTypeExpr
+                        children:
+                          - name: snapshotTypeLiteral
+                            children:
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+                                  - name: effectTypeExpr
+                                    children:
+                                      - name: effectTypeLiteral
+                                        children:
+                                          - name: typeSymbol
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+                                  - name: effectTypeExpr
+                                    children:
+                                      - name: effectTypeLiteral
+                                        children:
+                                          - name: typeSymbol
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+                                  - name: effectTypeExpr
+                                    children:
+                                      - name: effectTypeLiteral
+                                        children:
+                                          - name: intContextTypeLiteral
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: snapshotKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: snapshotTypeExpr
+                        children:
+                          - name: snapshotTypeLiteral
+                            children:
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+                                  - name: effectTypeExpr
+                                    children:
+                                      - name: effectTypeLiteral
+                                        children:
+                                          - name: typeSymbol
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+  - name: comment
+  - name: comment
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: bindTypeExpr
+            children:
+              - name: typeSymbol
+              - name: typeKeywords
+                children:
+                  - name: stateMachineKeyword
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: stateMachineKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: stateMachineTypeExpr
+                        children:
+                          - name: stateMachineTypeLiteral
+                            children:
+                              - name: stateLiteral
+                                children:
+                                  - name: idLiteral
+                              - name: stateLiteral
+                                children:
+                                  - name: varSymbol
+                              - name: stateLiteral
+                                children:
+                                  - name: varSymbol
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: contextKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: contextedTypeExpr
+                        children:
+                          - name: contextedTypeLiteral
+                            children:
+                              - name: varSymbol
+                              - name: effectTypeExpr
+                                children:
+                                  - name: effectTypeLiteral
+                                    children:
+                                      - name: intContextTypeLiteral
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: snapshotKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: snapshotTypeExpr
+                        children:
+                          - name: snapshotTypeLiteral
+                            children:
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+                                  - name: effectTypeExpr
+                                    children:
+                                      - name: effectTypeLiteral
+                                        children:
+                                          - name: typeSymbol
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+                                  - name: effectTypeExpr
+                                    children:
+                                      - name: effectTypeLiteral
+                                        children:
+                                          - name: typeSymbol
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+                                  - name: effectTypeExpr
+                                    children:
+                                      - name: effectTypeLiteral
+                                        children:
+                                          - name: intContextTypeLiteral
+  - name: stmt
+    children:
+      - name: defineStmts
+        children:
+          - name: assignTypeExpr
+            children:
+              - name: bindTypeExpr
+                children:
+                  - name: typeSymbol
+                  - name: typeKeywords
+                    children:
+                      - name: snapshotKeyword
+              - name: typeExpr
+                children:
+                  - name: typeLiteral
+                    children:
+                      - name: snapshotTypeExpr
+                        children:
+                          - name: snapshotTypeLiteral
+                            children:
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+                              - name: snapshotTypeItemLiteral
+                                children:
+                                  - name: varSymbol
+                                  - name: effectTypeExpr
+                                    children:
+                                      - name: effectTypeLiteral
+                                        children:
+                                          - name: intContextTypeLiteral
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: varSymbol
+          - name: op
+            children:
+              - name: applyOp
+          - name: expr
+            children:
+              - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: stateMachineLiteral
+            children:
+              - name: stateLiteral
+                children:
+                  - name: varSymbol
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: stateMachineLiteral
+                children:
+                  - name: stateLiteral
+                    children:
+                      - name: varSymbol
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: idLiteral
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: stateMachineLiteral
+                children:
+                  - name: stateLiteral
+                    children:
+                      - name: varSymbol
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: addLiteral
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: addLiteral
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: addLiteral
+          - name: op
+            children:
+              - name: composeOp
+          - name: expr
+            children:
+              - name: addLiteral
+  - name: stmt
+    children:
+      - name: expr
+        children:
+          - name: varSymbol
+          - name: op
+            children:
+              - name: applyOp
+          - name: expr
+            children:
+              - name: expr
+                children:
+                  - name: addLiteral
+                  - name: op
+                    children:
+                      - name: composeOp
+                  - name: expr
+                    children:
+                      - name: addLiteral
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
+  - name: comment
 

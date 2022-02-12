@@ -64,18 +64,18 @@ impl From<&Pair<'_, Rule>> for Node {
 
 pub fn to_node(pair: &Pair<'_, Rule>) -> Node {
     match pair.as_rule() {
-        Rule::text => Node::Value(Value {
-            name: "text".to_string(),
-            value: pair.as_str().to_string(),
-        }),
-        Rule::slug => Node::Value(Value {
-            name: "text".to_string(),
-            value: pair.as_str().to_string(),
-        }),
-        Rule::ch => Node::Value(Value {
-            name: "text".to_string(),
-            value: pair.as_str().to_string(),
-        }),
+        // Rule::text => Node::Value(Value {
+        //     name: "text".to_string(),
+        //     value: pair.as_str().to_string(),
+        // }),
+        // Rule::slug => Node::Value(Value {
+        //     name: "text".to_string(),
+        //     value: pair.as_str().to_string(),
+        // }),
+        // Rule::ch => Node::Value(Value {
+        //     name: "text".to_string(),
+        //     value: pair.as_str().to_string(),
+        // }),
         Rule::EOI => Node::Empty,
         _ => {
             let rule = pair.as_rule();
