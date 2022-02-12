@@ -59,11 +59,11 @@ typeOps = _{ typeAndOp }
 typeOp = { ws? ~ typeOps ~ ws? }
 
 typeExpr = { (typeFactor ~ ws? ~ tE) | typeTerm }
-typeTerm = { ((typeLiteral | typeSymbol) | "(" ~ ws? ~ typeExpr ~ ws? ~ ")") }
+typeTerm = _{ ((typeLiteral | typeSymbol) | "(" ~ ws? ~ typeExpr ~ ws? ~ ")") }
 typeFactor = _{ ws? ~ typeTerm ~ ws? }
 tE = _{ typeOp ~ typeExpr }
 
-typeStmts = { "type" ~ ws ~ (assignTypeExpr | bindTypeExpr) }
+typeStmt = { "type" ~ ws ~ (assignTypeExpr | bindTypeExpr) }
 
 // expr
 
@@ -88,10 +88,12 @@ effectExpr = { effectLiteral }
 contextEffectLiteral = { "(" ~ ws? ~ contextExpr ~ ws? ~ "," ~ ws? ~ effectExpr ~ ws? ~ ")" }
 contextEffectExpr = { contextEffectLiteral }
 
-expr = { (factor ~ ws? ~ E) | term }
+expr = { ws?~ (factor ~ ws? ~ E) | term ~ ws? }
 term = { (valueLiteral | "(" ~ ws? ~ expr ~ ws? ~ ")") }
 factor = _{ws? ~ term ~ ws?}
-E = _{ op ~ expr }
+// E = _{ op ~ expr }
+terminalA = {";"|"}"}
+E = _{ op ~ ws? ~ term ~ ws? ~ (E | !EOI) }
 
 calcStmt = _{ expr }
 
@@ -104,12 +106,42 @@ bindExpr = { ws? ~ varSymbol ~ ws? ~ "::" ~ ws? ~ bindValueTypeExpr ~ ws? }
 assignExpr = { ws? ~ bindExpr ~ ws? ~ "=" ~ ws? ~ expr ~ ws?}
 letStmt = { "let" ~ (assignExpr | bindExpr) }
 
+// scope
+
+stmtOrComment = {stmt|commentLine}
+stmtTerminal = { ";" }
+scopeInner = _{
+  (
+    // (commentLine) |
+    //((stmtOrComment)+ ~ expr) |
+    //((stmtOrComment)+) |
+    //(stmt) |
+    (stmtOrComment+) |
+    (stmtOrComment+ ~ expr) |
+    //(expr) |
+    //(stmt) |
+    (ws?)
+    //((commentLine | expr) ) |
+    //((commentLine | (scopeStmt | typeStmt | letStmt | calcStmt) ~ ws? ~ ";")+ ~ expr ) |
+    //((commentLine | (scopeStmt | typeStmt | letStmt | calcStmt) ~ ws? ~ ";")* )
+  )
+}
+scopeLiteral = {
+  ws? ~ "{" ~ ws? ~
+  scopeInner ~ ws? ~ "}"
+  ~ ws?
+}
+scopeExpr = { scopeLiteral }
+scopeStmt = { scopeExpr }
+
 // stmt
 
-stmt = { ws? ~ ((typeStmts | letStmt | calcStmt) ~ ws? ~ ";") }
-rootElements = _{ commentLine | stmt }
+// stmt = { ws? ~ ((!stmtTerminal ~ (scopeExpr | typeExpr | expr)) ~ ws? ~ stmtTerminal)* ~ ws? }
+// stmt = { ws? ~ (scopeExpr | typeExpr | expr) ~ ws? ~ ";" ~ ws? }
+stmt = { ws? ~ (( scopeStmt | typeStmt | letStmt | calcStmt) ~ ws? ~ ";") }
+rootScope = { ws? ~ scopeInner ~ ws? }
 
-document = { SOI ~ (ws? ~ rootElements ~ ws?)* ~ EOI }
+document = { SOI ~ rootScope ~ EOI }
 
 // いずれ {} で式を書けるようにする
 // Context型がUpperCamelCaseになってしまっている

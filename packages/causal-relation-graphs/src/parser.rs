@@ -108,8 +108,13 @@ impl Expr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Vm {
+pub struct Scope {
     type_symbols: Vec<TypeSymbol>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Vm {
+    stack: Vec<Scope>,
 }
 
 impl Vm {

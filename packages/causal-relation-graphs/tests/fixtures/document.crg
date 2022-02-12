@@ -1,9 +1,31 @@
+{};
+{//hoge
+};
+{
++1;
+// aa
++1;
+};
+a << a ;
++1 compose +1; +1;
+{+1;};
+{+1;   +1; +1 compose +1;  };
+// {};
+{+1;};
+
+// 代入の右辺にさらに代入を書ける？
+type A :: StateMachine;
+a<<  a;
+Id;
+Empty;
+=>a;
+Id compose =>a;
 Id compose Id;
-(Id) compose Id;
+((Id) compose Id);
 type Foo :: StateMachine = (Id => a) & (Id => b) & Foo;
 type Foo :: StateMachine = (Id => a) & (Id => b) & Foo;
 type Foo :: StateMachine = (Id => a);
-type Foo :: Snapshot = { foo: Int, a, a: Id => a };
+type Foo :: Snapshot = { foo: Int, a, a: Id => a, a: Foo };
 type Foo :: StateMachine;
 type Foo :: StateMachine = Id => a => b;
 type Foo :: StateMachine = Id => a => b;
