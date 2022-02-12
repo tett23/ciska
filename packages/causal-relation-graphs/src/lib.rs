@@ -4,13 +4,33 @@ extern crate pest_derive;
 
 mod parser;
 
-pub fn parse(document: &str) -> Result<parser::Node, String> {
+use parser::{Expr, Node, Stmt};
+
+pub fn parse(document: &str) -> Result<Node, String> {
     parser::parse(document)
 }
 
-pub fn execute(ast: parser::Node) -> Result<String, String> {
-    dbg!(ast);
-    // if(ast)
+pub fn execute(ast: Node) -> Result<String, String> {
+    match ast {
+        Node::Root(_) => (),
+        _ => return Err("".to_string()),
+    }
+    let nodes = match ast {
+        Node::Root(vec) => vec
+            .into_iter()
+            .flat_map(|item| match item {
+                Node::Stmt(v) => vec![v],
+                _ => vec![],
+            })
+            .collect::<Vec<_>>(),
+        _ => vec![],
+    }
+    .iter()
+    .map(|stmt| match stmt {
+        Stmt::Expr(expr) => expr.eval(),
+    })
+    .collect::<Vec<_>>();
+    dbg!(nodes);
 
     Ok("".to_string())
 }

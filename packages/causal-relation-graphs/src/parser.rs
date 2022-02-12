@@ -41,6 +41,8 @@ pub enum Expr {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Op {
+    // Id,
+    // Empty,
     Compose,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,6 +59,42 @@ pub enum Value {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Comment(String);
+
+impl Expr {
+    pub fn eval(&self) -> Value {
+        match self {
+            Expr::Id(v) => v.clone(),
+            Expr::Op(op, lhs, rhs) => op.apply(lhs.eval(), rhs.eval()),
+        }
+    }
+}
+
+impl Stmt {
+    pub fn eval(&self) -> Value {
+        // NOTE: voidでは
+        Value::Id
+    }
+}
+
+impl Op {
+    pub fn apply(&self, lhs: Value, rhs: Value) -> Value {
+        match (self, lhs, rhs) {
+            (Op::Compose, lhs, rhs) => eval_compose(lhs, rhs),
+        }
+    }
+}
+
+fn eval_compose(lhs: Value, rhs: Value) -> Value {
+    match (lhs, rhs) {
+        (Value::Id, Value::Id) => Value::Id,
+        (Value::AddEffect(lhs), Value::Id) => Value::AddEffect(lhs),
+        (Value::Id, Value::AddEffect(rls)) => Value::AddEffect(rls),
+        (Value::AddEffect(lhs), Value::AddEffect(rhs)) => {
+            Value::AddEffect(AddEffect(lhs.0 + rhs.0))
+        }
+        _ => Value::Empty,
+    }
+}
 
 impl Node {
     pub fn to_json(&self) -> Result<String, String> {
