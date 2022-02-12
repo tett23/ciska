@@ -1,0 +1,14 @@
+[package]
+name = "causal-relation-graphs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pest = "2.0"
+pest_derive = "2.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.8"
+
+[dev-dependencies]
+insta = "1.9"

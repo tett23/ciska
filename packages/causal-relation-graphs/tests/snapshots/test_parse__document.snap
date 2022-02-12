@@ -1,0 +1,42 @@
+---
+source: prose-parser/tests/test_parse.rs
+assertion_line: 51
+expression: "prose_parser::parse(content.as_str()).unwrap()"
+
+---
+name: document
+children:
+  - name: heading
+    children:
+      - name: heading_begin
+      - name: text
+        value: foo
+  - name: line_break
+  - name: paragraph
+    children:
+      - name: text
+        value: bar
+  - name: line_break
+  - name: block_comment
+    children:
+      - name: text
+        value: block comment
+  - name: line_break
+  - name: paragraph
+    children:
+      - name: tag
+        children:
+          - name: text
+            value: tag-name
+      - name: tag
+        children:
+          - name: text
+            value: tag2
+      - name: text
+        value: "paragraph text "
+      - name: inline_comment
+        children:
+          - name: text
+            value: inline comment
+  - name: line_break
+

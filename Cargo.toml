@@ -14,5 +14,6 @@ book-exporter = { path = "./packages/book-exporter" }
 members = [
   "packages/processor",
   "packages/prose-parser",
-  "packages/book-exporter"
+  "packages/book-exporter",
+  "packages/causal-relation-graphs"
 ]
