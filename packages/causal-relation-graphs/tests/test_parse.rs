@@ -25,6 +25,16 @@ fn parse() {
     });
 }
 
+#[test]
+fn execute() {
+    // let text = "+1;";
+    // let text = "// foo";
+    let text = "+1 compose +2; +1; // hoge";
+    let result = causal_relation_graphs::execute(causal_relation_graphs::parse(text).unwrap());
+
+    dbg!(result);
+}
+
 fn read_fixtures() -> Vec<(String, String)> {
     fs::read_dir("./tests/fixtures")
         .unwrap()

@@ -1,7 +1,7 @@
 lb = _{ "\n" | "\n\r" | "\r" }
 ws = _{ ( " " | lb )* }
 number = _{ '0'..'9' }
-numbers = _{ ('1'..'9' ~ number*) | ("-" ~ '1'..'9' ~ number*) }
+intLiteral = { ('1'..'9' ~ number*) | ("-" ~ '1'..'9' ~ number*) }
 
 typeSymbol = { (('A'..'Z' | "_") ~ ('A'..'Z' | 'a'..'z' | '0'..'9' | "_")*) }
 varSymbol = { (('a'..'z' | "_") ~ ('A'..'Z' | 'a'..'z' | '0'..'9' | "_")*) }
@@ -9,19 +9,17 @@ varSymbol = { (('a'..'z' | "_") ~ ('A'..'Z' | 'a'..'z' | '0'..'9' | "_")*) }
 idLiteral = { "Id" }
 emptyLiteral = { "Empty" }
 intContextTypeLiteral = { "Int" }
-intLiteral = _{ numbers | ("(" ~ numbers ~ ")") }
-addLiteral = { "+" ~ intLiteral }
+intExpr = _{ intLiteral | ("(" ~ ws? ~ intLiteral ~ ws? ~ ")") }
+addLiteral = { "+" ~ intExpr | idLiteral | emptyLiteral }
 stateLiteral = { idLiteral | emptyLiteral | varSymbol }
-stateMachineLiteral = { "=>" ~ stateLiteral }
-valueTypeLiteral = { intContextTypeLiteral | typeSymbol }
-contextedTypeLiteral = { varSymbol ~ ws? ~ ":" ~ ws? ~ effectTypeExpr }
+transitionLiteral = { "=>" ~ stateLiteral }
 contextTypeLiteral = { varSymbol ~ ws? ~ ":" ~ ws? ~ effectTypeExpr }
 contextTypeExpr = { contextTypeLiteral | typeSymbol }
 
-effectLiteral = _{ addLiteral | stateMachineLiteral | idLiteral | emptyLiteral }
-applyLiteral = _{ contextedTypeLiteral | idLiteral | emptyLiteral | varSymbol }
+effectLiteral = _{ addLiteral | transitionLiteral | idLiteral | emptyLiteral }
+applyLiteral = _{ contextTypeLiteral | idLiteral | emptyLiteral | varSymbol }
 
-stateMachineExpr = { typeLiteral | stateMachineLiteral }
+stateMachineExpr = { typeLiteral | transitionLiteral }
 
 effectTypeLiteral = { stateMachineExpr | intContextTypeLiteral | typeSymbol }
 effectTypeExpr = { effectTypeLiteral }
@@ -33,37 +31,37 @@ snapshotTypeItemLiteralFull = _{ ws? ~ varSymbol ~ ws? ~ ":" ~ ws? ~ effectTypeE
 snapshotTypeItemLiteralShort = _{ ws? ~ varSymbol ~ ws? }
 
 
-stateMachineTypeLiteral = { stateLiteral ~ ws? ~ toStateMachine+ }
-toStateMachine = _{ "=>" ~ ws? ~ stateLiteral ~ ws? }
+stateMachineTypeLiteral = { stateLiteral ~ ws? ~ toState+ }
+toState = _{ "=>" ~ ws? ~ stateLiteral ~ ws? }
 
 // comment
 
-comment = { (lb) | ((!lb ~ ANY)* ~ (lb | EOI)) }
+comment = { lb | ((!lb ~ ANY)* ~ (lb | EOI)) }
 commentStart = _{ ws? ~ "//" ~ ws? }
 commentLine = _{ commentStart ~ comment }
 
-// defineの定義部分
+// typeの定義部分
 
 stateMachineKeyword = { "StateMachine" }
 contextKeyword = { "Context" }
 snapshotKeyword = { "Snapshot" }
 typeKeywords = { stateMachineKeyword | stateMachineKeyword | contextKeyword | snapshotKeyword }
 bindTypeExpr = { ws? ~ typeSymbol ~ ws? ~ "::" ~ ws? ~ typeKeywords }
+assignTypeExpr = { bindTypeExpr ~ ws? ~ "=" ~ ws? ~ typeExpr }
+
+stateMachineTypeExpr = { stateMachineTypeLiteral }
+contextedTypeExpr = { contextTypeLiteral }
+snapshotTypeExpr = { snapshotTypeLiteral }
+typeLiteral = { stateMachineTypeExpr | contextedTypeExpr | snapshotTypeExpr }
 
 typeAndOp = { "&" }
 typeOps = _{ typeAndOp }
 typeOp = { ws? ~ typeOps ~ ws? }
 
-stateMachineTypeExpr = { stateMachineTypeLiteral }
-contextedTypeExpr = { contextedTypeLiteral }
-snapshotTypeExpr = { snapshotTypeLiteral }
-typeLiteral = { stateMachineTypeExpr | contextedTypeExpr | snapshotTypeExpr }
-
 typeExpr = { (typeFactor ~ ws? ~ tE) | typeTerm }
 typeTerm = _{ ((typeLiteral | typeSymbol) | "(" ~ ws? ~ typeExpr ~ ws? ~ ")") }
 typeFactor = _{ ws? ~ typeTerm ~ ws? }
 tE = _{ typeOp ~ typeExpr }
-assignTypeExpr = { bindTypeExpr ~ ws? ~ "=" ~ ws? ~ typeExpr }
 
 defineStmts = { "type" ~ ws ~ (assignTypeExpr | bindTypeExpr) }
 
@@ -77,21 +75,21 @@ ops = _{ composeOp | applyOp | reduceOp | pushOp }
 op = { ws ~ ops ~ ws }
 
 snapshotLiteral = { "{" ~ ws? ~ snapshotItemLiterals* ~ ws? ~ "}" }
-snapshotValueLiteral = { numbers | varSymbol }
+snapshotValueLiteral = { intLiteral | varSymbol }
 snapshotValueExpr = { snapshotValueLiteral }
 snapshotItemLiteral = { ws? ~ contextExpr ~ ws? ~ ":" ~ ws? ~ snapshotValueExpr ~ ws? }
 snapshotItemLiterals = _{ snapshotItemLiteral ~ (("," ~ (snapshotItemLiteral))*)? }
 
 valueLiteral = _{ effectLiteral | applyLiteral | contextEffectLiteral | sliceLiteral | snapshotLiteral }
 sliceLiteral = { "[" ~ ws? ~ (contextEffectExpr ~ (ws? ~ "," ~ws? ~ contextEffectExpr)*)? ~ ws? ~ "]" }
-contextLiteral = { contextedTypeLiteral }
+contextLiteral = { contextTypeLiteral }
 contextExpr = { contextLiteral | varSymbol }
 effectExpr = { effectLiteral }
 contextEffectLiteral = { "(" ~ ws? ~ contextExpr ~ ws? ~ "," ~ ws? ~ effectExpr ~ ws? ~ ")" }
 contextEffectExpr = { contextEffectLiteral }
 
 expr = { (factor ~ ws? ~ E) | term }
-term = _{ (valueLiteral | "(" ~ ws? ~ expr ~ ws? ~ ")") }
+term = { (valueLiteral | "(" ~ ws? ~ expr ~ ws? ~ ")") }
 factor = _{ws? ~ term ~ ws?}
 E = _{ op ~ expr }
 

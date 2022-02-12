@@ -8,6 +8,13 @@ pub fn parse(document: &str) -> Result<parser::Node, String> {
     parser::parse(document)
 }
 
+pub fn execute(ast: parser::Node) -> Result<String, String> {
+    dbg!(ast);
+    // if(ast)
+
+    Ok("".to_string())
+}
+
 // #[derive(Debug, Clone)]
 // pub struct Action<T> {
 //     id: String,
