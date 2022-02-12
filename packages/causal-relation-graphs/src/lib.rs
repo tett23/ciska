@@ -4,7 +4,7 @@ extern crate pest_derive;
 
 mod parser;
 
-use parser::{Expr, Node, Stmt};
+use parser::{Expr, Node, Stmt, Vm};
 
 pub fn parse(document: &str) -> Result<Node, String> {
     parser::parse(document)
@@ -26,10 +26,20 @@ pub fn execute(ast: Node) -> Result<String, String> {
         _ => vec![],
     }
     .iter()
-    .map(|stmt| match stmt {
-        Stmt::Expr(expr) => expr.eval(),
-    })
-    .collect::<Vec<_>>();
+    .fold(Vm::new(), move |mut vm, stmt| {
+        match stmt {
+            Stmt::Expr(expr) => {
+                expr.eval(&mut vm);
+                ()
+            }
+            Stmt::TypeExpr(expr) => {
+                expr.eval(&mut vm);
+                ()
+            }
+        };
+
+        vm
+    });
     dbg!(nodes);
 
     Ok("".to_string())

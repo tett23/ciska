@@ -33,7 +33,39 @@ pub enum Node {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Stmt {
     Expr(Expr),
+    TypeExpr(TypeExpr),
 }
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TypeExpr {
+    Bind(TypeSymbolName, TypeKind),
+    // Assign(),
+    Id(TypeValue),
+    // Op(TypeOp, Box<TypeExpr>, Box<TypeExpr>)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TypeValue {
+    Id,
+    Empty,
+    TypeSymbol(TypeSymbol),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TypeSymbol {
+    name: TypeSymbolName,
+    kind: TypeKind,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TypeSymbolName(String);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TypeKind {
+    StateMachine,
+    Snapshot,
+    Context,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Expr {
     Id(Value),
@@ -67,10 +99,46 @@ pub enum Value {
 pub struct Comment(String);
 
 impl Expr {
-    pub fn eval(&self) -> Value {
+    pub fn eval(&self, vm: &mut Vm) -> Value {
         match self {
             Expr::Id(v) => v.clone(),
-            Expr::Op(op, lhs, rhs) => op.apply(lhs.eval(), rhs.eval()),
+            Expr::Op(op, lhs, rhs) => op.apply(lhs.eval(vm), rhs.eval(vm)),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Vm {
+    type_symbols: Vec<TypeSymbol>,
+}
+
+impl Vm {
+    pub fn new() -> Self {
+        Self {
+            type_symbols: Vec::new(),
+        }
+    }
+
+    pub fn push_type_symbol(&mut self, name: &TypeSymbolName, kind: &TypeKind) -> TypeSymbol {
+        let symbol = TypeSymbol {
+            name: name.clone(),
+            kind: kind.clone(),
+        };
+        self.type_symbols.push(symbol.clone());
+
+        symbol
+    }
+}
+
+impl TypeExpr {
+    pub fn eval(&self, vm: &mut Vm) -> TypeValue {
+        match self {
+            Self::Bind(symbol,kind )=>{
+                TypeValue::TypeSymbol(vm.push_type_symbol(symbol, kind))
+            }
+            _ => unimplemented!()
+            // Expr::Id(v) => v.clone(),
+            // Expr::Op(op, lhs, rhs) => op.apply(lhs.eval(), rhs.eval()),
         }
     }
 }
@@ -128,10 +196,62 @@ impl From<&Pair<'_, Rule>> for Node {
 }
 
 fn parse_stmt(pair: &Pair<'_, Rule>) -> Stmt {
-    let a = pair.clone().into_inner().next().unwrap();
-    let a = parse_expr(&a);
+    let pair = pair.clone().into_inner().next().unwrap();
 
-    Stmt::Expr(a)
+    match pair.as_rule() {
+        Rule::expr => Stmt::Expr(parse_expr(&pair)),
+        Rule::typeStmts => Stmt::TypeExpr(parse_type_expr(&pair)),
+        _ => panic!(),
+    }
+}
+
+fn parse_type_expr(pair: &Pair<'_, Rule>) -> TypeExpr {
+    let pair = pair.clone().into_inner().next().unwrap();
+
+    match pair.as_rule() {
+        Rule::bindTypeExpr => parse_type_bind(&pair),
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_type_bind(pair: &Pair<'_, Rule>) -> TypeExpr {
+    let a = pair.clone().into_inner();
+    let size = pair
+        .clone()
+        .into_inner()
+        .map(|_item| true)
+        .collect::<Vec<_>>()
+        .len();
+    match size {
+        2 => {
+            let a = a.map(|item| item).collect::<Vec<_>>();
+            let mut a = a.iter();
+
+            let lhs = a.next().unwrap();
+            let rhs = a.next().unwrap();
+
+            TypeExpr::Bind(parse_type_symbol(lhs), parse_type_keyword(rhs))
+        }
+        _ => panic!(),
+    }
+}
+
+fn parse_type_symbol(pair: &Pair<'_, Rule>) -> TypeSymbolName {
+    TypeSymbolName(pair.as_span().as_str().to_string())
+}
+
+fn parse_type_keyword(pair: &Pair<'_, Rule>) -> TypeKind {
+    let pair = pair.clone().into_inner().next().unwrap();
+
+    parse_type_kind(&pair)
+}
+
+fn parse_type_kind(pair: &Pair<'_, Rule>) -> TypeKind {
+    match pair.as_rule() {
+        Rule::stateMachineKeyword => TypeKind::StateMachine,
+        Rule::snapshotKeyword => TypeKind::Snapshot,
+        _ => panic!(),
+    }
 }
 
 fn parse_op(pair: &Pair<'_, Rule>) -> Op {

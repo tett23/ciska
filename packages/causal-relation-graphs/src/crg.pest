@@ -59,11 +59,11 @@ typeOps = _{ typeAndOp }
 typeOp = { ws? ~ typeOps ~ ws? }
 
 typeExpr = { (typeFactor ~ ws? ~ tE) | typeTerm }
-typeTerm = _{ ((typeLiteral | typeSymbol) | "(" ~ ws? ~ typeExpr ~ ws? ~ ")") }
+typeTerm = { ((typeLiteral | typeSymbol) | "(" ~ ws? ~ typeExpr ~ ws? ~ ")") }
 typeFactor = _{ ws? ~ typeTerm ~ ws? }
 tE = _{ typeOp ~ typeExpr }
 
-defineStmts = { "type" ~ ws ~ (assignTypeExpr | bindTypeExpr) }
+typeStmts = { "type" ~ ws ~ (assignTypeExpr | bindTypeExpr) }
 
 // expr
 
@@ -106,7 +106,7 @@ letStmt = { "let" ~ (assignExpr | bindExpr) }
 
 // stmt
 
-stmt = { ws? ~ ((defineStmts | letStmt | calcStmt) ~ ws? ~ ";") }
+stmt = { ws? ~ ((typeStmts | letStmt | calcStmt) ~ ws? ~ ";") }
 rootElements = _{ commentLine | stmt }
 
 document = { SOI ~ (ws? ~ rootElements ~ ws?)* ~ EOI }

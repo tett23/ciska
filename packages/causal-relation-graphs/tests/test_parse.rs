@@ -27,10 +27,9 @@ fn parse() {
 
 #[test]
 fn execute() {
-    // let text = "+1;";
-    // let text = "// foo";
-    let text =
-        "+1 compose +2 compose +1; +1; // hoge\n=>a; Id; Empty; =>a compose =>b; Id compose =>a;";
+    // let text =
+    //     "+1 compose +2 compose +1; +1; // hoge\n=>a; Id; Empty; =>a compose =>b; Id compose =>a;";
+    let text = "type A :: StateMachine;";
     let result = causal_relation_graphs::execute(causal_relation_graphs::parse(text).unwrap());
 
     dbg!(result);
