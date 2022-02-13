@@ -80,13 +80,19 @@ pub enum TypeValue {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Snapshot(Vec<Context>);
+pub struct Snapshot(Vec<ContextType>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Context(ContextLabel, EffectType);
+pub struct ContextType(ContextLabel, EffectType);
+
+// #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+// pub struct ContextValue(ContextReference);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ContextLabel(String);
+
+// #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+// pub struct ContextReference(String);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EffectType {
@@ -159,17 +165,38 @@ pub struct AddEffect(i64);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IntLiteral(i64);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TransitionEffect(String);
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TransitionLiteral(String);
+pub struct TransitionEffect(StateLabel);
+
+// #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+// pub struct TransitionLiteral(String);
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Value {
     Id,
     Empty,
+    Effect(Effect),
+    ContextEffect(ContextEffect),
+    Slice(Slice),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Effect {
+    Id,
+    Empty,
     AddEffect(AddEffect),
     TransitionEffect(TransitionEffect),
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Slice(Vec<ContextEffect>);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContextEffect(ContextLabel, Effect);
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Comment(String);
@@ -393,18 +420,36 @@ impl Op {
 fn eval_compose(lhs: Value, rhs: Value) -> Value {
     match (lhs, rhs) {
         (Value::Id, Value::Id) => Value::Id,
-        (Value::AddEffect(lhs), Value::Id) => Value::AddEffect(lhs),
-        (Value::Id, Value::AddEffect(rls)) => Value::AddEffect(rls),
-        (Value::AddEffect(lhs), Value::AddEffect(rhs)) => {
-            Value::AddEffect(AddEffect(lhs.0 + rhs.0))
+        (any, Value::Id) => any,
+        (Value::Id, any) => any,
+
+        (Value::Effect(lhs), Value::Effect(rhs)) => {
+            match (lhs, rhs) {
+                (Effect::AddEffect(lhs), Effect::AddEffect(rhs)) => {
+                    Value::Effect(Effect::AddEffect(AddEffect(lhs.0 + rhs.0)))
+                }
+                (Effect::AddEffect(lhs), Effect::Id) => Value::Effect(Effect::AddEffect(lhs)),
+                (Effect::Id, Effect::AddEffect(rls)) => Value::Effect(Effect::AddEffect(rls)),
+
+                (Effect::TransitionEffect(_lhs), Effect::TransitionEffect(rhs)) => {
+                    // NOTE: 遷移可能かのチェックをする
+                    // Effect単体でTransitionの合成できないのではという疑惑ある
+                    Value::Effect(Effect::TransitionEffect(rhs))
+                }
+                (Effect::TransitionEffect(lhs), Effect::Id) => {
+                    Value::Effect(Effect::TransitionEffect(lhs))
+                }
+                (Effect::Id, Effect::TransitionEffect(rls)) => {
+                    Value::Effect(Effect::TransitionEffect(rls))
+                }
+
+                (Effect::Id, Effect::Id) => Value::Effect(Effect::Id),
+                _ => Value::Empty,
+            }
         }
-        (Value::TransitionEffect(lhs), Value::Id) => Value::TransitionEffect(lhs),
-        (Value::Id, Value::TransitionEffect(rls)) => Value::TransitionEffect(rls),
-        (Value::TransitionEffect(_lhs), Value::TransitionEffect(rhs)) => {
-            // NOTE: 遷移可能かのチェックをする
-            // Effect単体でTransitionの合成できないのではという疑惑ある
-            Value::TransitionEffect(TransitionEffect(rhs.0))
-        }
+        (Value::Slice(_), Value::Slice(_)) => unimplemented!(),
+        (Value::ContextEffect(_), Value::ContextEffect(_)) => unimplemented!(),
+
         _ => Value::Empty,
     }
 }
@@ -469,8 +514,6 @@ fn parse_assign_expr(pair: &Pair<'_, Rule>) -> LetExpr {
 }
 
 fn parse_bind_expr(pair: &Pair<'_, Rule>) -> ValueSymbol {
-    dbg!(&pair);
-
     match inner_len(pair) {
         2 => {
             let a = pair
@@ -525,16 +568,13 @@ fn parse_type_expr(pair: &Pair<'_, Rule>) -> TypeExpr {
 }
 
 fn parse_type_bind_expr(pair: &Pair<'_, Rule>) -> TypeSymbol {
-    let a = pair.clone().into_inner();
-    let size = pair
-        .clone()
-        .into_inner()
-        .map(|_item| true)
-        .collect::<Vec<_>>()
-        .len();
-    match size {
+    match inner_len(pair) {
         2 => {
-            let a = a.map(|item| item).collect::<Vec<_>>();
+            let a = pair
+                .clone()
+                .into_inner()
+                .map(|item| item)
+                .collect::<Vec<_>>();
             let mut a = a.iter();
 
             let lhs = a.next().unwrap();
@@ -628,7 +668,7 @@ fn parse_snapshot_type_literal(pair: &Pair<'_, Rule>) -> Snapshot {
     }
 }
 
-fn parse_snapshot_type_item_literal(pair: &Pair<'_, Rule>) -> Context {
+fn parse_snapshot_type_item_literal(pair: &Pair<'_, Rule>) -> ContextType {
     let a = pair.clone().into_inner();
     let size = pair
         .clone()
@@ -646,7 +686,7 @@ fn parse_snapshot_type_item_literal(pair: &Pair<'_, Rule>) -> Context {
             let lhs = a.next().unwrap();
             let rhs = a.next().unwrap();
 
-            Context(parse_context_label(lhs), parse_effect_type_expr(rhs))
+            ContextType(parse_context_label(lhs), parse_effect_type_expr(rhs))
         }
         _ => panic!(),
     }
@@ -808,22 +848,103 @@ fn parse_expr(pair: &Pair<'_, Rule>) -> Expr {
 }
 
 fn parse_term(pair: &Pair<'_, Rule>) -> Expr {
-    let a = pair.clone().into_inner().next().unwrap();
+    let pair = pair.clone().into_inner().next().unwrap();
 
-    Expr::Id(match a.as_rule() {
-        Rule::addLiteral => Value::AddEffect(parse_add_effect(&a)),
-        Rule::transitionLiteral => Value::TransitionEffect(parse_transition_effect(&a)),
+    Expr::Id(match pair.as_rule() {
+        Rule::addLiteral => Value::Effect(Effect::AddEffect(parse_add_effect(&pair))),
+        Rule::transitionLiteral => {
+            Value::Effect(Effect::TransitionEffect(parse_transition_effect(&pair)))
+        }
         Rule::idLiteral => Value::Id,
         Rule::emptyLiteral => Value::Empty,
+        Rule::sliceLiteral => Value::Slice(parse_slice_expr(&pair)),
         _ => panic!(),
     })
 }
 
-fn parse_add_effect(pair: &Pair<'_, Rule>) -> AddEffect {
-    let a = pair.clone().into_inner().next().unwrap();
-    let a = parse_int_literal(&a);
+fn parse_slice_expr(pair: &Pair<'_, Rule>) -> Slice {
+    parse_slice_literal(pair)
+}
 
-    AddEffect(a.0)
+fn parse_slice_literal(pair: &Pair<'_, Rule>) -> Slice {
+    let a = pair
+        .clone()
+        .into_inner()
+        .map(|item| parse_context_effect_expr(&item))
+        .collect::<Vec<_>>();
+
+    Slice(a)
+}
+
+fn parse_context_effect_expr(pair: &Pair<'_, Rule>) -> ContextEffect {
+    match inner_len(pair) {
+        1 => {
+            let pair = pair.clone().into_inner().next().unwrap();
+            parse_context_effect_literal(&pair)
+        }
+        _ => panic!(),
+    }
+}
+
+fn parse_context_effect_literal(pair: &Pair<'_, Rule>) -> ContextEffect {
+    match inner_len(pair) {
+        2 => {
+            let a = pair
+                .clone()
+                .into_inner()
+                .map(|item| item)
+                .collect::<Vec<_>>();
+            let mut a = a.iter();
+
+            let lhs = a.next().unwrap();
+            let rhs = a.next().unwrap();
+
+            ContextEffect(parse_context_expr(lhs), parse_effect_expr(rhs))
+        }
+        _ => panic!(),
+    }
+}
+
+fn parse_context_expr(pair: &Pair<'_, Rule>) -> ContextLabel {
+    match pair.as_rule() {
+        Rule::contextExpr => {
+            let pair = pair.clone().into_inner().next().unwrap();
+
+            ContextLabel(parse_var_symbol(&pair).0)
+        }
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_effect_expr(pair: &Pair<'_, Rule>) -> Effect {
+    match pair.as_rule() {
+        Rule::addLiteral => {
+            let pair = pair.clone().into_inner().next().unwrap();
+            Effect::AddEffect(parse_add_effect(&pair))
+        }
+        Rule::transitionLiteral => {
+            let pair = pair.clone().into_inner().next().unwrap();
+            Effect::TransitionEffect(parse_transition_effect(&pair))
+        }
+        Rule::idLiteral => Effect::Id,
+        Rule::emptyLiteral => Effect::Empty,
+        Rule::effectExpr => {
+            let pair = pair.clone().into_inner().next().unwrap();
+            parse_effect_expr(&pair)
+        }
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_add_effect(pair: &Pair<'_, Rule>) -> AddEffect {
+    match pair.as_rule() {
+        Rule::addLiteral => {
+            let pair = pair.clone().into_inner().next().unwrap();
+            parse_add_effect(&pair)
+        }
+        Rule::intLiteral => AddEffect(parse_int_literal(&pair).0),
+        _ => unimplemented!(),
+    }
 }
 
 fn parse_int_literal(pair: &Pair<'_, Rule>) -> IntLiteral {
@@ -831,14 +952,14 @@ fn parse_int_literal(pair: &Pair<'_, Rule>) -> IntLiteral {
 }
 
 fn parse_transition_effect(pair: &Pair<'_, Rule>) -> TransitionEffect {
-    let a = pair.clone().into_inner().next().unwrap();
-    let a = parse_transition_literal(&a);
-
-    TransitionEffect(a.0)
-}
-
-fn parse_transition_literal(pair: &Pair<'_, Rule>) -> TransitionLiteral {
-    TransitionLiteral(pair.as_span().as_str().to_string())
+    match pair.as_rule() {
+        Rule::transitionLiteral => {
+            let pair = pair.clone().into_inner().next().unwrap();
+            parse_transition_effect(&pair)
+        }
+        Rule::stateLiteral => TransitionEffect(parse_state_literal(&pair)),
+        _ => unimplemented!(),
+    }
 }
 
 fn parse_comment(pair: &Pair<'_, Rule>) -> Comment {
@@ -880,87 +1001,10 @@ pub fn to_node(pair: &Pair<'_, Rule>) -> Node {
             let pair = pairs.clone().next().unwrap();
             Node::Scope(parse_scope(&pair))
         }
-        // Rule::rootScope => {
-        //     let pairs = pair.clone().into_inner();
-        //     let child_nodes = pairs.map(|item| parse_stmt(&item)).collect::<Vec<_>>();
-
-        //     Node::Scope(ScopeValue(child_nodes))
-        // }
-        // Rule::stmt => Node::Stmt(parse_stmt(pair)),
-        // Rule::expr => {
-        //     let pairs = pair.clone().into_inner();
-        //     let child_nodes = pairs.map(|item| to_node(&item)).collect::<Vec<_>>();
-
-        //     Node::Expr(child_nodes)
-        // }
-        // Rule::addLiteral => {
-        //     let pairs = pair.clone().into_inner();
-        //     let child_nodes = pairs.map(|item| to_node(&item)).collect::<Vec<_>>();
-        //     let a = child_nodes.first().unwrap();
-        //     if let Node::IntLiteral(b) = a {
-        //         return Node::AddEffect(b.clone());
-        //     }
-
-        //     unimplemented!()
-        // }
-        // Rule::intLiteral => Node::IntLiteral(pair.as_span().as_str().parse::<i64>().unwrap()),
         Rule::comment => Node::Comment(parse_comment(pair)),
         Rule::EOI => Node::Comment(Comment("".to_string())),
         _ => {
             unimplemented!();
         }
     }
-
-    // match pair.as_rule() {
-    //     // Rule::text => Node::Value(Value {
-    //     //     name: "text".to_string(),
-    //     //     value: pair.as_str().to_string(),
-    //     // }),
-    //     // Rule::slug => Node::Value(Value {
-    //     //     name: "text".to_string(),
-    //     //     value: pair.as_str().to_string(),
-    //     // }),
-    //     // Rule::ch => Node::Value(Value {
-    //     //     name: "text".to_string(),
-    //     //     value: pair.as_str().to_string(),
-    //     // }),
-    //     Rule::EOI => Node::Empty,
-    //     _ => {
-    //         let rule = pair.as_rule();
-    //         let pairs = pair.clone().into_inner();
-    //         let child_nodes = pairs
-    //             .map(|item| to_node(&item))
-    //             .filter(|item| item != &Node::Empty)
-    //             .fold(vec![], |mut acc, item| {
-    //                 #[allow(mutable_borrow_reservation_conflict)]
-    //                 match (acc.pop(), item) {
-    //                     (Some(Node::Value(left)), Node::Value(right)) => {
-    //                         acc.push(Node::Value(Value {
-    //                             name: "text".to_string(),
-    //                             value: left.value.clone() + right.value.as_str(),
-    //                         }));
-    //                     }
-    //                     (Some(left), right) => {
-    //                         acc.push(left);
-    //                         acc.push(right);
-    //                     }
-    //                     (None, right) => {
-    //                         acc.push(right);
-    //                     }
-    //                 };
-
-    //                 acc
-    //             });
-
-    //         match child_nodes.is_empty() {
-    //             true => Node::Token(Token {
-    //                 name: format!("{:?}", rule),
-    //             }),
-    //             false => Node::Parent(Parent {
-    //                 name: format!("{:?}", rule),
-    //                 children: child_nodes,
-    //             }),
-    //         }
-    //     }
-    // }
 }

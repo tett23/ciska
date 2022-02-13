@@ -82,6 +82,7 @@ snapshotItemLiterals = _{ snapshotItemLiteral ~ (("," ~ (snapshotItemLiteral))*)
 valueLiteral = _{ effectLiteral | applyLiteral | contextEffectLiteral | sliceLiteral | snapshotLiteral }
 sliceLiteral = { "[" ~ ws? ~ (contextEffectExpr ~ (ws? ~ "," ~ws? ~ contextEffectExpr)*)? ~ ws? ~ "]" }
 contextLiteral = { contextTypeLiteral }
+// 値のContextExprは名前しか必要ないので、contextLiteralは不要かもしれない
 contextExpr = { contextLiteral | varSymbol }
 effectExpr = { effectLiteral }
 contextEffectLiteral = { "(" ~ ws? ~ contextExpr ~ ws? ~ "," ~ ws? ~ effectExpr ~ ws? ~ ")" }
