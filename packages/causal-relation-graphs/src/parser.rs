@@ -47,9 +47,32 @@ pub enum TypeExpr {
 pub enum TypeValue {
     Id,
     Empty,
+    Int,
     TypeSymbol(TypeSymbol),
     StateMachine(StateMachine),
+    Snapshot(Snapshot),
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Snapshot(Vec<Context>);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Context(ContextLabel, EffectType);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContextLabel(String);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EffectType {
+    Id,
+    Empty,
+    Int,
+    StateMachine,
+    TypeSymbolReference(TypeSymbolName),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TypeSymbolReference(String);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StateMachine(Vec<StateLabel>);
@@ -227,6 +250,7 @@ impl ScopeValue {
         });
 
         let scope = vm.pop_stack();
+        dbg!(&scope);
 
         scope.unwrap().return_value()
     }
@@ -295,7 +319,6 @@ fn parse_type_expr(pair: &Pair<'_, Rule>) -> TypeExpr {
         Rule::bindTypeExpr => TypeExpr::Bind(parse_type_bind(&pair)),
         Rule::assignTypeExpr => parse_type_assign(&pair),
         Rule::typeExpr => {
-            dbg!(pair);
             unimplemented!()
         }
         _ => panic!(),
@@ -371,10 +394,116 @@ fn parse_type_literal(pair: &Pair<'_, Rule>) -> TypeValue {
                 Rule::stateMachineTypeExpr => {
                     TypeValue::StateMachine(parse_state_machine_type_expr(&pair))
                 }
+                Rule::snapshotTypeExpr => TypeValue::Snapshot(parse_snapshot_type_expr(&pair)),
                 _ => unimplemented!(),
             }
         }
         _ => unimplemented!(),
+    }
+}
+
+fn parse_snapshot_type_expr(pair: &Pair<'_, Rule>) -> Snapshot {
+    match pair.as_rule() {
+        Rule::snapshotTypeExpr => {
+            let pair = pair.clone().into_inner().next().unwrap();
+
+            parse_snapshot_type_literal(&pair)
+        }
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_snapshot_type_literal(pair: &Pair<'_, Rule>) -> Snapshot {
+    // TODO: & によるStateMachineの合成がある。あと、途中に式が挟まることがある
+    match pair.as_rule() {
+        Rule::snapshotTypeLiteral => {
+            let contexts = pair
+                .clone()
+                .into_inner()
+                .map(|item| parse_snapshot_type_item_literal(&item))
+                .collect::<Vec<_>>();
+
+            Snapshot(contexts)
+        }
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_context_type(pair: &Pair<'_, Rule>) -> Context {
+    match pair.as_rule() {
+        Rule::snapshotTypeItemLiteral => {
+            let pair = pair.clone().into_inner().next().unwrap();
+            parse_snapshot_type_item_literal(&pair)
+        }
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_snapshot_type_item_literal(pair: &Pair<'_, Rule>) -> Context {
+    let a = pair.clone().into_inner();
+    let size = pair
+        .clone()
+        .into_inner()
+        .map(|_item| true)
+        .collect::<Vec<_>>()
+        .len();
+
+    match size {
+        1 => unimplemented!(),
+        2 => {
+            let a = a.map(|item| item).collect::<Vec<_>>();
+            let mut a = a.iter();
+
+            let lhs = a.next().unwrap();
+            let rhs = a.next().unwrap();
+
+            Context(parse_context_label(lhs), parse_effect_type_expr(rhs))
+        }
+        _ => panic!(),
+    }
+}
+
+fn parse_context_label(pair: &Pair<'_, Rule>) -> ContextLabel {
+    ContextLabel(parse_var_symbol(pair))
+}
+
+fn parse_var_symbol(pair: &Pair<'_, Rule>) -> String {
+    match pair.as_rule() {
+        Rule::varSymbol => pair.as_span().as_str().to_string(),
+        _ => panic!(),
+    }
+}
+
+fn parse_effect_type_expr(pair: &Pair<'_, Rule>) -> EffectType {
+    match pair.as_rule() {
+        Rule::effectTypeExpr => {
+            let pair = pair.clone().into_inner().next().unwrap();
+
+            parse_effect_type_literal(&pair)
+        }
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_effect_type_literal(pair: &Pair<'_, Rule>) -> EffectType {
+    match pair.as_rule() {
+        Rule::effectTypeLiteral => {
+            let pair = pair.clone().into_inner().next().unwrap();
+
+            match pair.as_rule() {
+                Rule::intContextTypeLiteral => parse_int_context_type_literal(&pair),
+                Rule::typeSymbol => EffectType::TypeSymbolReference(parse_type_symbol(&pair)),
+                _ => unimplemented!(),
+            }
+        }
+        _ => panic!(),
+    }
+}
+
+fn parse_int_context_type_literal(pair: &Pair<'_, Rule>) -> EffectType {
+    match pair.as_rule() {
+        Rule::intContextTypeLiteral => EffectType::Int,
+        _ => panic!(),
     }
 }
 

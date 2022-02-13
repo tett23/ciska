@@ -14,7 +14,6 @@ addLiteral = { "+" ~ intExpr }
 stateLiteral = { idLiteral | emptyLiteral | varSymbol }
 transitionLiteral = { "=>" ~ stateLiteral }
 contextTypeLiteral = { varSymbol ~ ws? ~ ":" ~ ws? ~ effectTypeExpr }
-contextTypeExpr = { contextTypeLiteral | typeSymbol }
 
 effectLiteral = _{ addLiteral | transitionLiteral | idLiteral | emptyLiteral }
 applyLiteral = _{ contextTypeLiteral | idLiteral | emptyLiteral | varSymbol }
