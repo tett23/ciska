@@ -195,6 +195,7 @@ pub enum Value {
     Id,
     Empty,
     Effect(Effect),
+    Context(ContextLabel),
     ContextEffect(ContextEffect),
     Slice(Slice),
     Snapshot(SnapshotValue),
@@ -461,10 +462,9 @@ impl ScopeValue {
 
 impl Op {
     pub fn apply(&self, lhs: Value, rhs: Value) -> Value {
-        // 変数が展開されている必要がある
         match (self, &lhs, &rhs) {
             (Op::Compose, lhs, rhs) => eval_compose(lhs, rhs),
-            (Op::Apply, _lhs, _rhs) => unimplemented!(),
+            (Op::Apply, lhs, rhs) => eval_apply(lhs, rhs),
             (Op::Reduce, _lhs, _rhs) => unimplemented!(),
             (Op::Push, lhs, rhs) => eval_push(lhs, rhs),
         }
@@ -519,6 +519,16 @@ fn eval_push(lhs: &Value, rhs: &Value) -> Value {
             slice.0.push(context_effect.clone());
 
             Value::Slice(slice)
+        }
+        _ => Value::Empty,
+    }
+}
+
+fn eval_apply(lhs: &Value, rhs: &Value) -> Value {
+    dbg!(lhs, rhs);
+    match (lhs, rhs) {
+        (Value::Context(label), Value::Effect(effect)) => {
+            Value::ContextEffect(ContextEffect(label.clone(), effect.clone()))
         }
         _ => Value::Empty,
     }
@@ -922,6 +932,7 @@ fn parse_term(pair: &Pair<'_, Rule>) -> Expr {
     let pair = pair.clone().into_inner().next().unwrap();
 
     match pair.as_rule() {
+        Rule::expr => parse_expr(&pair),
         Rule::varSymbol => Expr::Reference(ValueSymbolReference(parse_var_symbol(&pair))),
         Rule::addLiteral => Expr::Id(Value::Effect(Effect::AddEffect(parse_add_effect(&pair)))),
         Rule::transitionLiteral => Expr::Id(Value::Effect(Effect::TransitionEffect(
