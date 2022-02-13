@@ -31,8 +31,34 @@ pub struct ScopeValue(pub Vec<Stmt>);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Stmt {
     Expr(Expr),
-    TypeExpr(TypeExpr),
+    TypeStmt(TypeExpr),
+    LetStmt(LetExpr),
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LetExpr {
+    Bind(ValueSymbol),
+    Assign { symbol: ValueSymbol, expr: Expr },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ValueSymbol {
+    name: ValueSymbolName,
+    kind: BindKeywords,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BindKeywords {
+    Slice,
+    Effect,
+    ContextEffect,
+    Context,
+    Snapshot,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ValueSymbolName(String);
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TypeExpr {
     Bind(TypeSymbol),
@@ -84,6 +110,26 @@ pub struct StateLabel(String);
 pub struct TypeSymbol {
     name: TypeSymbolName,
     kind: TypeKind,
+}
+
+trait Assignable<T> {
+    fn assignable(&self, value: &T) -> bool;
+}
+
+impl Assignable<TypeValue> for TypeSymbol {
+    fn assignable(&self, _value: &TypeValue) -> bool {
+        // TODO: 実装
+
+        true
+    }
+}
+
+impl Assignable<Value> for ValueSymbol {
+    fn assignable(&self, _value: &Value) -> bool {
+        // TODO: 実装
+
+        true
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -144,7 +190,9 @@ impl Expr {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Scope {
+    // TODO: VecをSymbolTableにする
     type_symbols: Vec<(TypeSymbol, TypeValue)>,
+    value_symbols: Vec<(ValueSymbol, Value)>,
     return_value: Value,
 }
 
@@ -179,16 +227,67 @@ impl Scope {
     pub fn new() -> Self {
         Self {
             type_symbols: Vec::new(),
+            value_symbols: Vec::new(),
             return_value: Value::Empty,
         }
     }
 
     pub fn push_type_symbol(&mut self, symbol: &TypeSymbol) {
+        if self
+            .type_symbols
+            .iter()
+            .find(|item| item.0.name.0 == symbol.name.0)
+            .is_some()
+        {
+            panic!()
+        }
+
         self.type_symbols.push((symbol.clone(), TypeValue::Empty));
     }
 
     pub fn assign_type_symbol(&mut self, symbol: &TypeSymbol, value: &TypeValue) {
-        self.type_symbols.push((symbol.clone(), value.clone()));
+        if !symbol.assignable(value) {
+            panic!()
+        }
+
+        if let Some(sym) = self
+            .type_symbols
+            .iter_mut()
+            .find(|item| item.0.name.0 == symbol.name.0)
+        {
+            sym.1 = value.clone();
+        } else {
+            self.type_symbols.push((symbol.clone(), value.clone()));
+        }
+    }
+
+    pub fn push_value_symbol(&mut self, symbol: &ValueSymbol) {
+        if self
+            .value_symbols
+            .iter()
+            .find(|item| item.0.name.0 == symbol.name.0)
+            .is_some()
+        {
+            panic!()
+        }
+
+        self.value_symbols.push((symbol.clone(), Value::Empty));
+    }
+
+    pub fn assign_value_symbol(&mut self, symbol: &ValueSymbol, value: &Value) {
+        if !symbol.assignable(value) {
+            panic!()
+        }
+
+        if let Some(sym) = self
+            .value_symbols
+            .iter_mut()
+            .find(|item| item.0.name.0 == symbol.name.0)
+        {
+            sym.1 = value.clone();
+        } else {
+            self.value_symbols.push((symbol.clone(), value.clone()));
+        }
     }
 
     pub fn push_return_value(&mut self, value: &Value) {
@@ -220,6 +319,25 @@ impl TypeExpr {
     }
 }
 
+impl LetExpr {
+    pub fn eval(&self, vm: &Vm) -> (Vm, Value) {
+        match self {
+            Self::Bind(symbol) => {
+                let mut vm = vm.clone();
+                vm.current_scope().push_value_symbol(&symbol);
+
+                (vm.clone(), Value::Empty)
+            }
+            Self::Assign { symbol, expr } => {
+                let (mut vm, value) = expr.eval(&vm);
+                vm.current_scope().assign_value_symbol(symbol, &value);
+
+                (vm.clone(), value.clone())
+            }
+        }
+    }
+}
+
 impl Stmt {
     pub fn eval(&self) -> Value {
         Value::Empty
@@ -239,8 +357,13 @@ impl ScopeValue {
 
                     vm
                 }
-                Stmt::TypeExpr(expr) => {
+                Stmt::TypeStmt(expr) => {
                     let (vm, _) = expr.eval(&vm);
+
+                    vm
+                }
+                Stmt::LetStmt(expr) => {
+                    let (vm, _value) = expr.eval(&vm);
 
                     vm
                 }
@@ -307,17 +430,93 @@ fn parse_stmt(pair: &Pair<'_, Rule>) -> Stmt {
 
     match pair.as_rule() {
         Rule::expr => Stmt::Expr(parse_expr(&pair)),
-        Rule::typeStmt => Stmt::TypeExpr(parse_type_expr(&pair)),
+        Rule::typeStmt => Stmt::TypeStmt(parse_type_expr(&pair)),
+        Rule::letStmt => Stmt::LetStmt(parse_let_expr(&pair)),
         _ => panic!(),
     }
+}
+
+fn parse_let_expr(pair: &Pair<'_, Rule>) -> LetExpr {
+    let pair = pair.clone().into_inner().next().unwrap();
+
+    match pair.as_rule() {
+        Rule::bindExpr => LetExpr::Bind(parse_bind_expr(&pair)),
+        Rule::assignExpr => parse_assign_expr(&pair),
+        _ => panic!(),
+    }
+}
+
+fn parse_assign_expr(pair: &Pair<'_, Rule>) -> LetExpr {
+    match inner_len(pair) {
+        2 => {
+            let a = pair
+                .clone()
+                .into_inner()
+                .map(|item| item)
+                .collect::<Vec<_>>();
+            let mut a = a.iter();
+
+            let lhs = a.next().unwrap();
+            let rhs = a.next().unwrap();
+
+            LetExpr::Assign {
+                symbol: parse_bind_expr(lhs),
+                expr: parse_expr(rhs),
+            }
+        }
+        _ => panic!(),
+    }
+}
+
+fn parse_bind_expr(pair: &Pair<'_, Rule>) -> ValueSymbol {
+    dbg!(&pair);
+
+    match inner_len(pair) {
+        2 => {
+            let a = pair
+                .clone()
+                .into_inner()
+                .map(|item| item)
+                .collect::<Vec<_>>();
+            let mut a = a.iter();
+
+            let lhs = a.next().unwrap();
+            let rhs = a.next().unwrap();
+
+            ValueSymbol {
+                name: parse_var_symbol(lhs),
+                kind: parse_bind_keywords(rhs),
+            }
+        }
+        _ => panic!(),
+    }
+}
+
+fn parse_bind_keywords(pair: &Pair<'_, Rule>) -> BindKeywords {
+    match pair.as_span().as_str() {
+        "Slice" => BindKeywords::Slice,
+        "Effect" => BindKeywords::Effect,
+        "ContextEffect" => BindKeywords::ContextEffect,
+        "Context" => BindKeywords::Context,
+        "Snapshot" => BindKeywords::Snapshot,
+        _ => unimplemented!(),
+    }
+}
+
+fn inner_len(pair: &Pair<'_, Rule>) -> usize {
+    pair.clone()
+        .into_inner()
+        .map(|_item| true)
+        .collect::<Vec<_>>()
+        .len()
 }
 
 fn parse_type_expr(pair: &Pair<'_, Rule>) -> TypeExpr {
     let pair = pair.clone().into_inner().next().unwrap();
 
     match pair.as_rule() {
-        Rule::bindTypeExpr => TypeExpr::Bind(parse_type_bind(&pair)),
-        Rule::assignTypeExpr => parse_type_assign(&pair),
+        Rule::bindTypeExpr => TypeExpr::Bind(parse_type_bind_expr(&pair)),
+        Rule::assignTypeExpr => parse_type_assign_expr(&pair),
         Rule::typeExpr => {
             unimplemented!()
         }
@@ -325,7 +524,7 @@ fn parse_type_expr(pair: &Pair<'_, Rule>) -> TypeExpr {
     }
 }
 
-fn parse_type_bind(pair: &Pair<'_, Rule>) -> TypeSymbol {
+fn parse_type_bind_expr(pair: &Pair<'_, Rule>) -> TypeSymbol {
     let a = pair.clone().into_inner();
     let size = pair
         .clone()
@@ -350,7 +549,7 @@ fn parse_type_bind(pair: &Pair<'_, Rule>) -> TypeSymbol {
     }
 }
 
-fn parse_type_assign(pair: &Pair<'_, Rule>) -> TypeExpr {
+fn parse_type_assign_expr(pair: &Pair<'_, Rule>) -> TypeExpr {
     let a = pair.clone().into_inner();
     let size = pair
         .clone()
@@ -367,7 +566,7 @@ fn parse_type_assign(pair: &Pair<'_, Rule>) -> TypeExpr {
             let rhs = a.next().unwrap();
 
             TypeExpr::Assign {
-                symbol: parse_type_bind(lhs),
+                symbol: parse_type_bind_expr(lhs),
                 value: parse_type_value(rhs),
             }
         }
@@ -429,16 +628,6 @@ fn parse_snapshot_type_literal(pair: &Pair<'_, Rule>) -> Snapshot {
     }
 }
 
-fn parse_context_type(pair: &Pair<'_, Rule>) -> Context {
-    match pair.as_rule() {
-        Rule::snapshotTypeItemLiteral => {
-            let pair = pair.clone().into_inner().next().unwrap();
-            parse_snapshot_type_item_literal(&pair)
-        }
-        _ => unimplemented!(),
-    }
-}
-
 fn parse_snapshot_type_item_literal(pair: &Pair<'_, Rule>) -> Context {
     let a = pair.clone().into_inner();
     let size = pair
@@ -464,12 +653,12 @@ fn parse_snapshot_type_item_literal(pair: &Pair<'_, Rule>) -> Context {
 }
 
 fn parse_context_label(pair: &Pair<'_, Rule>) -> ContextLabel {
-    ContextLabel(parse_var_symbol(pair))
+    ContextLabel(parse_var_symbol(pair).0)
 }
 
-fn parse_var_symbol(pair: &Pair<'_, Rule>) -> String {
+fn parse_var_symbol(pair: &Pair<'_, Rule>) -> ValueSymbolName {
     match pair.as_rule() {
-        Rule::varSymbol => pair.as_span().as_str().to_string(),
+        Rule::varSymbol => ValueSymbolName(pair.as_span().as_str().to_string()),
         _ => panic!(),
     }
 }

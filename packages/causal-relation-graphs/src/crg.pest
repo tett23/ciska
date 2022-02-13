@@ -99,6 +99,7 @@ calcStmt = _{ expr }
 // let 関連
 
 bindKeywords = { "Slice" | "Effect" | "ContextEffect" | "Context" | "Snapshot" }
+// bindValuetypeExpr に型の式が書ける必要がある。{a: Int}みたいな
 bindValueTypeExpr = { bindKeywords }
 
 bindExpr = { ws? ~ varSymbol ~ ws? ~ "::" ~ ws? ~ bindValueTypeExpr ~ ws? }
