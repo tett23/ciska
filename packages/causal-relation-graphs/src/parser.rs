@@ -166,7 +166,12 @@ pub enum TypeKind {
 pub enum Expr {
     Id(Value),
     Op(Op, Box<Expr>, Box<Expr>),
+    Reference(ValueSymbolReference),
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ValueSymbolReference(ValueSymbolName);
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Op {
     Compose,
@@ -226,6 +231,10 @@ impl Expr {
 
                 (vm.clone(), op.apply(lhs_value, rhs_value))
             }
+            Expr::Reference(reference) => (
+                vm.clone(),
+                vm.lookup_value_symbol(reference).unwrap().1.clone(),
+            ),
         }
     }
 }
@@ -260,9 +269,21 @@ impl Vm {
         self.stack.last_mut().unwrap()
     }
 
-    // pub fn current_return(&mut self) -> Value {
-    //     self.current_scope().return_value()
-    // }
+    pub fn lookup_value_symbol(
+        &self,
+        reference: &ValueSymbolReference,
+    ) -> Option<&(ValueSymbol, Value)> {
+        let scope = self
+            .stack
+            .iter()
+            .rev()
+            .find(|item| item.find_value_symbol(reference).is_some());
+
+        match scope {
+            Some(scope) => scope.find_value_symbol(reference),
+            None => None,
+        }
+    }
 }
 
 impl Scope {
@@ -338,6 +359,23 @@ impl Scope {
 
     pub fn return_value(&self) -> Value {
         self.return_value.clone()
+    }
+
+    pub fn find_value_symbol(
+        &self,
+        reference: &ValueSymbolReference,
+    ) -> Option<&(ValueSymbol, Value)> {
+        self.value_symbols.iter().find(
+            |(
+                ValueSymbol {
+                    name: ValueSymbolName(sym_name),
+                    ..
+                },
+                _,
+            )| match reference {
+                ValueSymbolReference(ValueSymbolName(ref_name)) => sym_name == ref_name,
+            },
+        )
     }
 }
 
@@ -423,39 +461,44 @@ impl ScopeValue {
 
 impl Op {
     pub fn apply(&self, lhs: Value, rhs: Value) -> Value {
-        match (self, lhs, rhs) {
+        // 変数が展開されている必要がある
+        match (self, &lhs, &rhs) {
             (Op::Compose, lhs, rhs) => eval_compose(lhs, rhs),
             (Op::Apply, _lhs, _rhs) => unimplemented!(),
             (Op::Reduce, _lhs, _rhs) => unimplemented!(),
-            (Op::Push, _lhs, _rhs) => unimplemented!(),
+            (Op::Push, lhs, rhs) => eval_push(lhs, rhs),
         }
     }
 }
 
-fn eval_compose(lhs: Value, rhs: Value) -> Value {
+fn eval_compose(lhs: &Value, rhs: &Value) -> Value {
     match (lhs, rhs) {
         (Value::Id, Value::Id) => Value::Id,
-        (any, Value::Id) => any,
-        (Value::Id, any) => any,
+        (any, Value::Id) => any.clone(),
+        (Value::Id, any) => any.clone(),
 
         (Value::Effect(lhs), Value::Effect(rhs)) => {
             match (lhs, rhs) {
                 (Effect::AddEffect(lhs), Effect::AddEffect(rhs)) => {
                     Value::Effect(Effect::AddEffect(AddEffect(lhs.0 + rhs.0)))
                 }
-                (Effect::AddEffect(lhs), Effect::Id) => Value::Effect(Effect::AddEffect(lhs)),
-                (Effect::Id, Effect::AddEffect(rls)) => Value::Effect(Effect::AddEffect(rls)),
+                (Effect::AddEffect(lhs), Effect::Id) => {
+                    Value::Effect(Effect::AddEffect(lhs.clone()))
+                }
+                (Effect::Id, Effect::AddEffect(rls)) => {
+                    Value::Effect(Effect::AddEffect(rls.clone()))
+                }
 
                 (Effect::TransitionEffect(_lhs), Effect::TransitionEffect(rhs)) => {
                     // NOTE: 遷移可能かのチェックをする
                     // Effect単体でTransitionの合成できないのではという疑惑ある
-                    Value::Effect(Effect::TransitionEffect(rhs))
+                    Value::Effect(Effect::TransitionEffect(rhs.clone()))
                 }
                 (Effect::TransitionEffect(lhs), Effect::Id) => {
-                    Value::Effect(Effect::TransitionEffect(lhs))
+                    Value::Effect(Effect::TransitionEffect(lhs.clone()))
                 }
                 (Effect::Id, Effect::TransitionEffect(rls)) => {
-                    Value::Effect(Effect::TransitionEffect(rls))
+                    Value::Effect(Effect::TransitionEffect(rls.clone()))
                 }
 
                 (Effect::Id, Effect::Id) => Value::Effect(Effect::Id),
@@ -465,6 +508,18 @@ fn eval_compose(lhs: Value, rhs: Value) -> Value {
         (Value::Slice(_), Value::Slice(_)) => unimplemented!(),
         (Value::ContextEffect(_), Value::ContextEffect(_)) => unimplemented!(),
 
+        _ => Value::Empty,
+    }
+}
+
+fn eval_push(lhs: &Value, rhs: &Value) -> Value {
+    match (lhs, rhs) {
+        (Value::Slice(slice), Value::ContextEffect(context_effect)) => {
+            let mut slice = slice.clone();
+            slice.0.push(context_effect.clone());
+
+            Value::Slice(slice)
+        }
         _ => Value::Empty,
     }
 }
@@ -866,17 +921,21 @@ fn parse_expr(pair: &Pair<'_, Rule>) -> Expr {
 fn parse_term(pair: &Pair<'_, Rule>) -> Expr {
     let pair = pair.clone().into_inner().next().unwrap();
 
-    Expr::Id(match pair.as_rule() {
-        Rule::addLiteral => Value::Effect(Effect::AddEffect(parse_add_effect(&pair))),
-        Rule::transitionLiteral => {
-            Value::Effect(Effect::TransitionEffect(parse_transition_effect(&pair)))
+    match pair.as_rule() {
+        Rule::varSymbol => Expr::Reference(ValueSymbolReference(parse_var_symbol(&pair))),
+        Rule::addLiteral => Expr::Id(Value::Effect(Effect::AddEffect(parse_add_effect(&pair)))),
+        Rule::transitionLiteral => Expr::Id(Value::Effect(Effect::TransitionEffect(
+            parse_transition_effect(&pair),
+        ))),
+        Rule::idLiteral => Expr::Id(Value::Id),
+        Rule::emptyLiteral => Expr::Id(Value::Empty),
+        Rule::sliceLiteral => Expr::Id(Value::Slice(parse_slice_expr(&pair))),
+        Rule::snapshotLiteral => Expr::Id(Value::Snapshot(parse_snapshot_value_expr(&pair))),
+        Rule::contextEffectLiteral => {
+            Expr::Id(Value::ContextEffect(parse_context_effect_expr(&pair)))
         }
-        Rule::idLiteral => Value::Id,
-        Rule::emptyLiteral => Value::Empty,
-        Rule::sliceLiteral => Value::Slice(parse_slice_expr(&pair)),
-        Rule::snapshotLiteral => Value::Snapshot(parse_snapshot_value_expr(&pair)),
         _ => panic!(),
-    })
+    }
 }
 
 fn parse_snapshot_value_expr(pair: &Pair<'_, Rule>) -> SnapshotValue {
@@ -968,6 +1027,7 @@ fn parse_context_effect_expr(pair: &Pair<'_, Rule>) -> ContextEffect {
             let pair = pair.clone().into_inner().next().unwrap();
             parse_context_effect_literal(&pair)
         }
+        2 => parse_context_effect_literal(&pair),
         _ => panic!(),
     }
 }
