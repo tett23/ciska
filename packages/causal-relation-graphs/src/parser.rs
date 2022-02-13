@@ -969,6 +969,7 @@ fn parse_comment(pair: &Pair<'_, Rule>) -> Comment {
 fn parse_stmt_or_comment(pair: &Pair<'_, Rule>) -> Option<Stmt> {
     match pair.as_rule() {
         Rule::commentLine => None,
+        Rule::comment => None,
         Rule::stmt => Some(parse_stmt(pair)),
         _ => {
             unimplemented!()
