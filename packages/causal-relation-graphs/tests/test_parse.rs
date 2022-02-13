@@ -32,7 +32,7 @@ fn execute() {
     // let text =
     //     "type A :: StateMachine; type B :: StateMachine = Id => a; type C :: StateMachine = {context_a: Int, context_b: B}; let a :: Effect; let b :: Effect = +1; let c :: Slice = Id; let d :: Slice = =>a; let e :: Slice = []; let f :: Slice = [(a, +1), (b, =>a)];";
     let text = "let a :: Snapshot = {a: 1, d: a}; let b :: Slice = []; [] << a; [] << (a, +1); let aa :: ContextEffect = (a apply +1); [(a, +10)] reduce {a: 1};";
-    let result = causal_relation_graphs::execute(&causal_relation_graphs::parse(text).unwrap());
+    let result = causal_relation_graphs::execute_ast(&causal_relation_graphs::parse(text).unwrap());
 
     dbg!(result);
 }

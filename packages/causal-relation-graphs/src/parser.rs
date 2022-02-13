@@ -542,7 +542,6 @@ impl ScopeValue {
         });
 
         let scope = vm.pop_stack();
-        dbg!(&scope);
 
         scope.unwrap().return_value()
     }

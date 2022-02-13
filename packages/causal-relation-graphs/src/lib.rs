@@ -10,7 +10,11 @@ pub fn parse(document: &str) -> Result<Node, String> {
     parser::parse(document)
 }
 
-pub fn execute(ast: &Node) -> Result<String, String> {
+pub fn run(document: &str) -> Result<String, String> {
+    execute_ast(&parse(document)?)
+}
+
+pub fn execute_ast(ast: &Node) -> Result<String, String> {
     match ast {
         Node::Scope(_) => (),
         _ => return Err("".to_string()),
@@ -22,7 +26,7 @@ pub fn execute(ast: &Node) -> Result<String, String> {
         _ => Value::Empty,
     };
 
-    Ok(format!("{:?}", value).to_string())
+    serde_json::to_string_pretty(&value).map_err(|err| err.to_string())
 }
 
 // #[derive(Debug, Clone)]
