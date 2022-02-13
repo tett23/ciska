@@ -35,10 +35,12 @@ pub enum Stmt {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TypeExpr {
-    Bind(TypeSymbolName, TypeKind),
-    // Assign(),
+    Bind(TypeSymbol),
+    Assign {
+        symbol: TypeSymbol,
+        value: TypeValue,
+    },
     Id(TypeValue),
-    // Op(TypeOp, Box<TypeExpr>, Box<TypeExpr>)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,7 +48,14 @@ pub enum TypeValue {
     Id,
     Empty,
     TypeSymbol(TypeSymbol),
+    StateMachine(StateMachine),
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StateMachine(Vec<StateLabel>);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StateLabel(String);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TypeSymbol {
@@ -112,7 +121,7 @@ impl Expr {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Scope {
-    type_symbols: Vec<TypeSymbol>,
+    type_symbols: Vec<(TypeSymbol, TypeValue)>,
     return_value: Value,
 }
 
@@ -151,14 +160,12 @@ impl Scope {
         }
     }
 
-    pub fn push_type_symbol(&mut self, name: &TypeSymbolName, kind: &TypeKind) -> TypeSymbol {
-        let symbol = TypeSymbol {
-            name: name.clone(),
-            kind: kind.clone(),
-        };
-        self.type_symbols.push(symbol.clone());
+    pub fn push_type_symbol(&mut self, symbol: &TypeSymbol) {
+        self.type_symbols.push((symbol.clone(), TypeValue::Empty));
+    }
 
-        symbol
+    pub fn assign_type_symbol(&mut self, symbol: &TypeSymbol, value: &TypeValue) {
+        self.type_symbols.push((symbol.clone(), value.clone()));
     }
 
     pub fn push_return_value(&mut self, value: &Value) {
@@ -173,19 +180,19 @@ impl Scope {
 impl TypeExpr {
     pub fn eval(&self, vm: &Vm) -> (Vm, TypeValue) {
         match self {
-            Self::Bind(symbol,kind )=>{
+            Self::Bind(symbol) => {
                 let mut vm = vm.clone();
-                let a =vm.current_scope().push_type_symbol(symbol, kind);
+                vm.current_scope().push_type_symbol(&symbol);
 
-                (
-                    vm.clone(),
-                    TypeValue::TypeSymbol(a)
-                )
-
+                (vm.clone(), TypeValue::TypeSymbol(symbol.clone()))
             }
-            _ => unimplemented!()
-            // Expr::Id(v) => v.clone(),
-            // Expr::Op(op, lhs, rhs) => op.apply(lhs.eval(), rhs.eval()),
+            Self::Assign { symbol, value } => {
+                let mut vm = vm.clone();
+                vm.current_scope().assign_type_symbol(symbol, value);
+
+                (vm.clone(), value.clone())
+            }
+            Self::Id(value) => (vm.clone(), value.clone()),
         }
     }
 }
@@ -285,12 +292,17 @@ fn parse_type_expr(pair: &Pair<'_, Rule>) -> TypeExpr {
     let pair = pair.clone().into_inner().next().unwrap();
 
     match pair.as_rule() {
-        Rule::bindTypeExpr => parse_type_bind(&pair),
-        _ => unimplemented!(),
+        Rule::bindTypeExpr => TypeExpr::Bind(parse_type_bind(&pair)),
+        Rule::assignTypeExpr => parse_type_assign(&pair),
+        Rule::typeExpr => {
+            dbg!(pair);
+            unimplemented!()
+        }
+        _ => panic!(),
     }
 }
 
-fn parse_type_bind(pair: &Pair<'_, Rule>) -> TypeExpr {
+fn parse_type_bind(pair: &Pair<'_, Rule>) -> TypeSymbol {
     let a = pair.clone().into_inner();
     let size = pair
         .clone()
@@ -306,9 +318,101 @@ fn parse_type_bind(pair: &Pair<'_, Rule>) -> TypeExpr {
             let lhs = a.next().unwrap();
             let rhs = a.next().unwrap();
 
-            TypeExpr::Bind(parse_type_symbol(lhs), parse_type_keyword(rhs))
+            TypeSymbol {
+                name: parse_type_symbol(lhs),
+                kind: parse_type_keyword(rhs),
+            }
         }
         _ => panic!(),
+    }
+}
+
+fn parse_type_assign(pair: &Pair<'_, Rule>) -> TypeExpr {
+    let a = pair.clone().into_inner();
+    let size = pair
+        .clone()
+        .into_inner()
+        .map(|_item| true)
+        .collect::<Vec<_>>()
+        .len();
+    match size {
+        2 => {
+            let a = a.map(|item| item).collect::<Vec<_>>();
+            let mut a = a.iter();
+
+            let lhs = a.next().unwrap();
+            let rhs = a.next().unwrap();
+
+            TypeExpr::Assign {
+                symbol: parse_type_bind(lhs),
+                value: parse_type_value(rhs),
+            }
+        }
+        _ => panic!(),
+    }
+}
+
+fn parse_type_value(pair: &Pair<'_, Rule>) -> TypeValue {
+    match pair.as_rule() {
+        Rule::typeExpr => {
+            let pair = pair.clone().into_inner().next().unwrap();
+
+            parse_type_literal(&pair)
+        }
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_type_literal(pair: &Pair<'_, Rule>) -> TypeValue {
+    match pair.as_rule() {
+        Rule::typeLiteral => {
+            let pair = pair.clone().into_inner().next().unwrap();
+            match pair.as_rule() {
+                Rule::stateMachineTypeExpr => {
+                    TypeValue::StateMachine(parse_state_machine_type_expr(&pair))
+                }
+                _ => unimplemented!(),
+            }
+        }
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_state_machine_type_expr(pair: &Pair<'_, Rule>) -> StateMachine {
+    match pair.as_rule() {
+        Rule::stateMachineTypeExpr => {
+            let pair = pair.clone().into_inner().next().unwrap();
+
+            parse_state_machine_type_literal(&pair)
+        }
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_state_machine_type_literal(pair: &Pair<'_, Rule>) -> StateMachine {
+    // TODO: & によるStateMachineの合成がある。あと、途中に式が挟まることがある
+    match pair.as_rule() {
+        Rule::stateMachineTypeLiteral => {
+            let states = pair
+                .clone()
+                .into_inner()
+                .map(|item| parse_state_literal(&item))
+                .collect::<Vec<_>>();
+
+            StateMachine(states)
+        }
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_state_literal(pair: &Pair<'_, Rule>) -> StateLabel {
+    match pair.as_rule() {
+        Rule::stateLiteral => {
+            let pair = pair.clone().into_inner().next().unwrap();
+
+            StateLabel(pair.as_span().as_str().to_string())
+        }
+        _ => unimplemented!(),
     }
 }
 
