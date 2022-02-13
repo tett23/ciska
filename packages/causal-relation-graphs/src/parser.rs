@@ -78,6 +78,7 @@ pub enum TypeValue {
     TypeSymbol(TypeSymbol),
     StateMachine(StateMachine),
     Snapshot(SnapshotType),
+    Context(ContextType),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -817,11 +818,14 @@ fn parse_type_literal(pair: &Pair<'_, Rule>) -> TypeValue {
     match pair.as_rule() {
         Rule::typeLiteral => {
             let pair = pair.clone().into_inner().next().unwrap();
+
             match pair.as_rule() {
                 Rule::stateMachineTypeExpr => {
                     TypeValue::StateMachine(parse_state_machine_type_expr(&pair))
                 }
                 Rule::snapshotTypeExpr => TypeValue::Snapshot(parse_snapshot_type_expr(&pair)),
+                Rule::contextedTypeExpr => TypeValue::Context(parse_context_type_expr(&pair)),
+                Rule::typeLiteral => TypeValue::Context(parse_context_type_expr(&pair)),
                 _ => unimplemented!(),
             }
         }
@@ -857,18 +861,14 @@ fn parse_snapshot_type_literal(pair: &Pair<'_, Rule>) -> SnapshotType {
 }
 
 fn parse_snapshot_type_item_literal(pair: &Pair<'_, Rule>) -> ContextType {
-    let a = pair.clone().into_inner();
-    let size = pair
-        .clone()
-        .into_inner()
-        .map(|_item| true)
-        .collect::<Vec<_>>()
-        .len();
-
-    match size {
+    match inner_len(pair) {
         1 => unimplemented!(),
         2 => {
-            let a = a.map(|item| item).collect::<Vec<_>>();
+            let a = pair
+                .clone()
+                .into_inner()
+                .map(|item| item)
+                .collect::<Vec<_>>();
             let mut a = a.iter();
 
             let lhs = a.next().unwrap();
@@ -977,6 +977,7 @@ fn parse_type_kind(pair: &Pair<'_, Rule>) -> TypeKind {
     match pair.as_rule() {
         Rule::stateMachineKeyword => TypeKind::StateMachine,
         Rule::snapshotKeyword => TypeKind::Snapshot,
+        Rule::contextKeyword => TypeKind::Context,
         _ => panic!(),
     }
 }
@@ -993,16 +994,9 @@ fn parse_op(pair: &Pair<'_, Rule>) -> Op {
 }
 
 fn parse_expr(pair: &Pair<'_, Rule>) -> Expr {
-    let a = pair.clone().into_inner();
-    let size = pair
-        .clone()
-        .into_inner()
-        .map(|_item| true)
-        .collect::<Vec<_>>()
-        .len();
-    match size {
+    match inner_len(pair) {
         1 => {
-            let v = a.clone().next().unwrap();
+            let v = pair.clone().into_inner().next().unwrap();
             match v.as_rule() {
                 Rule::term => parse_term(&v),
                 Rule::expr => parse_expr(&v),
@@ -1010,7 +1004,11 @@ fn parse_expr(pair: &Pair<'_, Rule>) -> Expr {
             }
         }
         3 => {
-            let a = a.map(|item| item).collect::<Vec<_>>();
+            let a = pair
+                .clone()
+                .into_inner()
+                .map(|item| item)
+                .collect::<Vec<_>>();
             let mut a = a.iter();
 
             let v = a.next().unwrap();
@@ -1053,7 +1051,35 @@ fn parse_term(pair: &Pair<'_, Rule>) -> Expr {
         Rule::contextEffectLiteral => {
             Expr::Id(Value::ContextEffect(parse_context_effect_expr(&pair)))
         }
+        Rule::contextTypeLiteral => {
+            let a = parse_context_type_expr(&pair);
+            Expr::Id(Value::Context(a.0.clone()))
+        }
         _ => panic!(),
+    }
+}
+
+fn parse_context_type_expr(pair: &Pair<'_, Rule>) -> ContextType {
+    dbg!(pair, inner_len(pair));
+    match inner_len(pair) {
+        1 => {
+            let pair = pair.clone().into_inner().next().unwrap();
+            parse_context_type_expr(&pair)
+        }
+        2 => {
+            let a = pair
+                .clone()
+                .into_inner()
+                .map(|item| item)
+                .collect::<Vec<_>>();
+            let mut a = a.iter();
+
+            let lhs = a.next().unwrap();
+            let rhs = a.next().unwrap();
+
+            ContextType(parse_context_label(lhs), parse_effect_type_expr(rhs))
+        }
+        _ => unimplemented!(),
     }
 }
 
