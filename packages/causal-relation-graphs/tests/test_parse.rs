@@ -31,7 +31,7 @@ fn execute() {
     //     "+1 compose +2 compose +1; +1; // hoge\n=>a; Id; Empty; =>a compose =>b; Id compose =>a;";
     // let text =
     //     "type A :: StateMachine; type B :: StateMachine = Id => a; type C :: StateMachine = {context_a: Int, context_b: B}; let a :: Effect; let b :: Effect = +1; let c :: Slice = Id; let d :: Slice = =>a; let e :: Slice = []; let f :: Slice = [(a, +1), (b, =>a)];";
-    let text = "// a";
+    let text = "let a :: Snapshot = {a: 1, d: a};";
     let result = causal_relation_graphs::execute(&causal_relation_graphs::parse(text).unwrap());
 
     dbg!(result);

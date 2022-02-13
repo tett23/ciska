@@ -76,11 +76,25 @@ pub enum TypeValue {
     Int,
     TypeSymbol(TypeSymbol),
     StateMachine(StateMachine),
-    Snapshot(Snapshot),
+    Snapshot(SnapshotType),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Snapshot(Vec<ContextType>);
+pub struct SnapshotType(Vec<ContextType>);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SnapshotValue(Vec<SnapshotValueItem>);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SnapshotValueItem(ContextLabel, SnapshotValueItemValue);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SnapshotValueItemValue {
+    Id,
+    Empty,
+    Int(IntLiteral),
+    State(StateLabel),
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ContextType(ContextLabel, EffectType);
@@ -178,6 +192,7 @@ pub enum Value {
     Effect(Effect),
     ContextEffect(ContextEffect),
     Slice(Slice),
+    Snapshot(SnapshotValue),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -641,7 +656,7 @@ fn parse_type_literal(pair: &Pair<'_, Rule>) -> TypeValue {
     }
 }
 
-fn parse_snapshot_type_expr(pair: &Pair<'_, Rule>) -> Snapshot {
+fn parse_snapshot_type_expr(pair: &Pair<'_, Rule>) -> SnapshotType {
     match pair.as_rule() {
         Rule::snapshotTypeExpr => {
             let pair = pair.clone().into_inner().next().unwrap();
@@ -652,7 +667,7 @@ fn parse_snapshot_type_expr(pair: &Pair<'_, Rule>) -> Snapshot {
     }
 }
 
-fn parse_snapshot_type_literal(pair: &Pair<'_, Rule>) -> Snapshot {
+fn parse_snapshot_type_literal(pair: &Pair<'_, Rule>) -> SnapshotType {
     // TODO: & によるStateMachineの合成がある。あと、途中に式が挟まることがある
     match pair.as_rule() {
         Rule::snapshotTypeLiteral => {
@@ -662,7 +677,7 @@ fn parse_snapshot_type_literal(pair: &Pair<'_, Rule>) -> Snapshot {
                 .map(|item| parse_snapshot_type_item_literal(&item))
                 .collect::<Vec<_>>();
 
-            Snapshot(contexts)
+            SnapshotType(contexts)
         }
         _ => unimplemented!(),
     }
@@ -765,6 +780,7 @@ fn parse_state_machine_type_literal(pair: &Pair<'_, Rule>) -> StateMachine {
 
 fn parse_state_literal(pair: &Pair<'_, Rule>) -> StateLabel {
     match pair.as_rule() {
+        Rule::varSymbol => StateLabel(pair.as_span().as_str().to_string()),
         Rule::stateLiteral => {
             let pair = pair.clone().into_inner().next().unwrap();
 
@@ -858,8 +874,78 @@ fn parse_term(pair: &Pair<'_, Rule>) -> Expr {
         Rule::idLiteral => Value::Id,
         Rule::emptyLiteral => Value::Empty,
         Rule::sliceLiteral => Value::Slice(parse_slice_expr(&pair)),
+        Rule::snapshotLiteral => Value::Snapshot(parse_snapshot_value_expr(&pair)),
         _ => panic!(),
     })
+}
+
+fn parse_snapshot_value_expr(pair: &Pair<'_, Rule>) -> SnapshotValue {
+    match pair.as_rule() {
+        Rule::snapshotLiteral => parse_snapshot_value_literal(pair),
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_snapshot_value_literal(pair: &Pair<'_, Rule>) -> SnapshotValue {
+    let a = pair
+        .clone()
+        .into_inner()
+        .map(|item| parse_snapshot_value_item_expr(&item))
+        .collect::<Vec<_>>();
+
+    SnapshotValue(a)
+}
+
+fn parse_snapshot_value_item_expr(pair: &Pair<'_, Rule>) -> SnapshotValueItem {
+    match pair.as_rule() {
+        Rule::snapshotItemLiteral => parse_snapshot_value_item_literal(pair),
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_snapshot_value_item_literal(pair: &Pair<'_, Rule>) -> SnapshotValueItem {
+    match inner_len(pair) {
+        2 => {
+            let a = pair
+                .clone()
+                .into_inner()
+                .map(|item| item)
+                .collect::<Vec<_>>();
+            let mut a = a.iter();
+
+            let lhs = a.next().unwrap();
+            let rhs = a.next().unwrap();
+
+            SnapshotValueItem(
+                parse_context_expr(lhs),
+                parse_snapshot_value_item_value_expr(rhs),
+            )
+        }
+        _ => panic!(),
+    }
+}
+
+fn parse_snapshot_value_item_value_expr(pair: &Pair<'_, Rule>) -> SnapshotValueItemValue {
+    match pair.as_rule() {
+        Rule::snapshotValueExpr => {
+            let pair = pair.clone().into_inner().next().unwrap();
+            parse_snapshot_value_item_value_expr(&pair)
+        }
+        Rule::snapshotValueLiteral => parse_snapshot_value_item_value_literal(pair),
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_snapshot_value_item_value_literal(pair: &Pair<'_, Rule>) -> SnapshotValueItemValue {
+    let pair = pair.clone().into_inner().next().unwrap();
+
+    match pair.as_rule() {
+        Rule::intLiteral => SnapshotValueItemValue::Int(parse_int_literal(&pair)),
+        Rule::varSymbol => SnapshotValueItemValue::State(parse_state_literal(&pair)),
+        Rule::idLiteral => SnapshotValueItemValue::Id,
+        Rule::emptyLiteral => SnapshotValueItemValue::Empty,
+        _ => unimplemented!(),
+    }
 }
 
 fn parse_slice_expr(pair: &Pair<'_, Rule>) -> Slice {

@@ -74,7 +74,7 @@ ops = _{ composeOp | applyOp | reduceOp | pushOp }
 op = { ws ~ ops ~ ws }
 
 snapshotLiteral = { "{" ~ ws? ~ snapshotItemLiterals* ~ ws? ~ "}" }
-snapshotValueLiteral = { intLiteral | varSymbol }
+snapshotValueLiteral = { idLiteral | emptyLiteral | intLiteral | varSymbol }
 snapshotValueExpr = { snapshotValueLiteral }
 snapshotItemLiteral = { ws? ~ contextExpr ~ ws? ~ ":" ~ ws? ~ snapshotValueExpr ~ ws? }
 snapshotItemLiterals = _{ snapshotItemLiteral ~ (("," ~ (snapshotItemLiteral))*)? }
