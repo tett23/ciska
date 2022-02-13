@@ -21,9 +21,8 @@ pub fn execute(ast: &Node) -> Result<String, String> {
         Node::Scope(scope) => scope.eval(&mut vm),
         _ => Value::Empty,
     };
-    dbg!(value);
 
-    Ok("".to_string())
+    Ok(format!("{:?}", value).to_string())
 }
 
 // #[derive(Debug, Clone)]

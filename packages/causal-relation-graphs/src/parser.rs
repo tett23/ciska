@@ -1,6 +1,7 @@
 use pest::iterators::Pair;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Parser)]
 #[grammar = "crg.pest"]
@@ -85,6 +86,31 @@ pub struct SnapshotType(Vec<ContextType>);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SnapshotValue(Vec<SnapshotValueItem>);
 
+impl SnapshotValue {
+    fn find_by_label(&self, label: &ContextLabel) -> Option<&SnapshotValueItem> {
+        self.0
+            .iter()
+            .find(|SnapshotValueItem(snapshot_label, _)| snapshot_label == label)
+    }
+
+    fn insert(&self, label: &ContextLabel, value: &SnapshotValueItemValue) -> SnapshotValue {
+        let mut ret = self.clone();
+
+        let idx = self
+            .0
+            .iter()
+            .position(|SnapshotValueItem(label, _)| label == label);
+        match idx {
+            Some(idx) => {
+                ret.0[idx] = SnapshotValueItem(label.clone(), value.clone());
+            }
+            None => ret.0.push(SnapshotValueItem(label.clone(), value.clone())),
+        }
+
+        ret
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SnapshotValueItem(ContextLabel, SnapshotValueItemValue);
 
@@ -96,13 +122,34 @@ pub enum SnapshotValueItemValue {
     State(StateLabel),
 }
 
+impl SnapshotValueItemValue {
+    fn apply(&self, effect: &Effect) -> SnapshotValueItemValue {
+        match self {
+            SnapshotValueItemValue::Id => SnapshotValueItemValue::Empty,
+            SnapshotValueItemValue::Empty => SnapshotValueItemValue::Empty,
+            SnapshotValueItemValue::Int(v) => match effect {
+                Effect::Id => SnapshotValueItemValue::Int(IntLiteral(v.0)),
+                Effect::AddEffect(vv) => SnapshotValueItemValue::Int(IntLiteral(v.0 + vv.0)),
+                _ => SnapshotValueItemValue::Empty,
+            },
+            SnapshotValueItemValue::State(v) => match effect {
+                Effect::Id => SnapshotValueItemValue::State(v.clone()),
+                Effect::TransitionEffect(_vv) => {
+                    unimplemented!()
+                }
+                _ => SnapshotValueItemValue::Empty,
+            },
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ContextType(ContextLabel, EffectType);
 
 // #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 // pub struct ContextValue(ContextReference);
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct ContextLabel(String);
 
 // #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -208,6 +255,47 @@ pub enum Effect {
     Empty,
     AddEffect(AddEffect),
     TransitionEffect(TransitionEffect),
+}
+
+impl Effect {
+    pub fn compose(&self, rhs: &Effect) -> Effect {
+        match (self, rhs) {
+            (Effect::AddEffect(lhs), rhs) => lhs.compose(rhs),
+            (Effect::TransitionEffect(lhs), rhs) => lhs.compose(rhs),
+            (Effect::Id, rhs) => rhs.clone(),
+            _ => Effect::Empty,
+        }
+    }
+
+    pub fn apply(&self, value: &SnapshotValueItemValue) -> SnapshotValueItemValue {
+        value.apply(self)
+    }
+}
+
+impl AddEffect {
+    pub fn compose(&self, rhs: &Effect) -> Effect {
+        match (self, rhs) {
+            (AddEffect(lhs), Effect::AddEffect(AddEffect(rhs))) => {
+                Effect::AddEffect(AddEffect(lhs + rhs))
+            }
+            (AddEffect(lhs), Effect::Id) => Effect::AddEffect(AddEffect(lhs.clone())),
+            _ => Effect::Empty,
+        }
+    }
+}
+
+impl TransitionEffect {
+    pub fn compose(&self, rhs: &Effect) -> Effect {
+        match (self, rhs) {
+            (TransitionEffect(_lhs), Effect::TransitionEffect(TransitionEffect(rhs))) => {
+                Effect::TransitionEffect(TransitionEffect(rhs.clone()))
+            }
+            (TransitionEffect(lhs), Effect::Id) => {
+                Effect::TransitionEffect(TransitionEffect(lhs.clone()))
+            }
+            _ => Effect::Empty,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -465,7 +553,7 @@ impl Op {
         match (self, &lhs, &rhs) {
             (Op::Compose, lhs, rhs) => eval_compose(lhs, rhs),
             (Op::Apply, lhs, rhs) => eval_apply(lhs, rhs),
-            (Op::Reduce, _lhs, _rhs) => unimplemented!(),
+            (Op::Reduce, lhs, rhs) => eval_reduce(lhs, rhs),
             (Op::Push, lhs, rhs) => eval_push(lhs, rhs),
         }
     }
@@ -477,34 +565,7 @@ fn eval_compose(lhs: &Value, rhs: &Value) -> Value {
         (any, Value::Id) => any.clone(),
         (Value::Id, any) => any.clone(),
 
-        (Value::Effect(lhs), Value::Effect(rhs)) => {
-            match (lhs, rhs) {
-                (Effect::AddEffect(lhs), Effect::AddEffect(rhs)) => {
-                    Value::Effect(Effect::AddEffect(AddEffect(lhs.0 + rhs.0)))
-                }
-                (Effect::AddEffect(lhs), Effect::Id) => {
-                    Value::Effect(Effect::AddEffect(lhs.clone()))
-                }
-                (Effect::Id, Effect::AddEffect(rls)) => {
-                    Value::Effect(Effect::AddEffect(rls.clone()))
-                }
-
-                (Effect::TransitionEffect(_lhs), Effect::TransitionEffect(rhs)) => {
-                    // NOTE: 遷移可能かのチェックをする
-                    // Effect単体でTransitionの合成できないのではという疑惑ある
-                    Value::Effect(Effect::TransitionEffect(rhs.clone()))
-                }
-                (Effect::TransitionEffect(lhs), Effect::Id) => {
-                    Value::Effect(Effect::TransitionEffect(lhs.clone()))
-                }
-                (Effect::Id, Effect::TransitionEffect(rls)) => {
-                    Value::Effect(Effect::TransitionEffect(rls.clone()))
-                }
-
-                (Effect::Id, Effect::Id) => Value::Effect(Effect::Id),
-                _ => Value::Empty,
-            }
-        }
+        (Value::Effect(lhs), Value::Effect(rhs)) => Value::Effect(lhs.compose(rhs)),
         (Value::Slice(_), Value::Slice(_)) => unimplemented!(),
         (Value::ContextEffect(_), Value::ContextEffect(_)) => unimplemented!(),
 
@@ -524,8 +585,56 @@ fn eval_push(lhs: &Value, rhs: &Value) -> Value {
     }
 }
 
+fn eval_reduce(lhs: &Value, rhs: &Value) -> Value {
+    match (lhs, rhs) {
+        (Value::Slice(slice), Value::Snapshot(snapshot)) => Value::Snapshot(slice.apply(snapshot)),
+        _ => Value::Empty,
+    }
+}
+
+impl Slice {
+    pub fn apply(&self, snapshot: &SnapshotValue) -> SnapshotValue {
+        let context_effects = self
+            .0
+            .iter()
+            .fold(
+                HashMap::<ContextLabel, Vec<Effect>>::new(),
+                |mut acc, ContextEffect(label, effect)| {
+                    let effects = match acc.get_mut(label) {
+                        Some(v) => v,
+                        None => {
+                            acc.insert(label.clone(), Vec::new());
+                            acc.get_mut(label).unwrap()
+                        }
+                    };
+                    effects.push(effect.clone());
+
+                    acc
+                },
+            )
+            .iter()
+            .map(|(label, effects)| {
+                ContextEffect(
+                    label.clone(),
+                    effects
+                        .iter()
+                        .fold(Effect::Id, |acc, effect| acc.compose(effect)),
+                )
+            })
+            .fold(snapshot.clone(), |acc, ContextEffect(label, effect)| {
+                let value = match snapshot.find_by_label(&label) {
+                    Some(SnapshotValueItem(_, value)) => effect.apply(value),
+                    _ => SnapshotValueItemValue::Empty,
+                };
+
+                acc.insert(&label, &value)
+            });
+
+        context_effects
+    }
+}
+
 fn eval_apply(lhs: &Value, rhs: &Value) -> Value {
-    dbg!(lhs, rhs);
     match (lhs, rhs) {
         (Value::Context(label), Value::Effect(effect)) => {
             Value::ContextEffect(ContextEffect(label.clone(), effect.clone()))
