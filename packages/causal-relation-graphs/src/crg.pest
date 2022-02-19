@@ -41,8 +41,7 @@ toState = _{ "=>" ~ ws? ~ stateExpr ~ ws? }
 // comment
 
 comment = { lb | ((!lb ~ ANY)* ~ (lb | EOI)) }
-commentStart = _{ ws? ~ "//" ~ ws? }
-// TODO "//" だけでテキストのないコメントを処理できない
+commentStart = _{ ws? ~ "//" }
 commentLine = _{ commentStart ~ comment }
 
 // typeの定義部分
