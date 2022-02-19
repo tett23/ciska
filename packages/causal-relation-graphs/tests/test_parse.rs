@@ -4,16 +4,6 @@ use insta::assert_yaml_snapshot;
 use std::{fs, path::Path};
 
 #[test]
-fn parse_empty() {
-    let text = r###""###;
-
-    assert_yaml_snapshot!(causal_relation_graphs::parse(text).unwrap(), @r###"
-    ---
-    []
-    "###);
-}
-
-#[test]
 fn parse() {
     read_fixtures().iter().for_each(|(name, content)| {
         assert_yaml_snapshot!(
@@ -29,7 +19,7 @@ fn execute() {
     //     "+1 compose +2 compose +1; +1; // hoge\n=>a; Id; Empty; =>a compose =>b; Id compose =>a;";
     // let text =
     //     "type A :: StateMachine; type B :: StateMachine = Id => a; type C :: StateMachine = {context_a: Int, context_b: B}; let a :: Effect; let b :: Effect = +1; let c :: Slice = Id; let d :: Slice = =>a; let e :: Slice = []; let f :: Slice = [(a, +1), (b, =>a)];";
-    let text = "let a :: Snapshot = {a: 1, d: `a`}; let b :: Slice = []; [] << a; [] << (a, +1); let aa :: ContextEffect = (a apply +1); [(a, +10)] reduce {a: 1};";
+    let text = "let a :: Snapshot = {a: 1, d: `a`}; let b :: Slice = []; [] << a; [] << (a, +1); let aa :: ContextEffect = (a apply +1); [(a, +10)] reduce {a: 1}";
     let result = causal_relation_graphs::execute_ast(&causal_relation_graphs::parse(text).unwrap());
 
     assert!(result.is_ok());

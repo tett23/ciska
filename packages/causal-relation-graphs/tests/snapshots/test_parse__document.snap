@@ -1,8 +1,11 @@
 ---
 source: packages/causal-relation-graphs/tests/test_parse.rs
-assertion_line: 19
+assertion_line: 11
 expression: "causal_relation_graphs::parse(content.as_str()).unwrap()"
 
 ---
-[]
+- Expr:
+    Id:
+      effect:
+        addEffect: 1
 

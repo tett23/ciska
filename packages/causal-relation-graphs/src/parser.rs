@@ -1333,6 +1333,7 @@ fn parse_stmt_or_comment(pair: &Pair<'_, Rule>) -> Option<Stmt> {
         Rule::commentLine => None,
         Rule::comment => None,
         Rule::stmt => Some(parse_stmt(pair)),
+        Rule::expr => Some(Stmt::Expr(parse_expr(pair))),
         _ => {
             unimplemented!()
         }

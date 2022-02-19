@@ -32,4 +32,4 @@ slice2 reduce {a: 1};
   [(context_a: Int, +3)] << (
     (context_a: Int) apply (+1 compose (+1 compose +1))
   )
-) reduce {context_a: 10, context_b: `a`};
+) reduce {context_a: 10, context_b: `a`}

@@ -3,8 +3,10 @@ ws = _{ ( " " | lb )* }
 number = _{ '0'..'9' }
 intLiteral = { ('1'..'9' ~ number*) | ("-" ~ '1'..'9' ~ number*) }
 
+keywords = _{ "type" | "let" }
+
 typeSymbol = { (('A'..'Z' | "_") ~ ('A'..'Z' | 'a'..'z' | '0'..'9' | "_")*) }
-varSymbol = { (('a'..'z' | "_") ~ ('A'..'Z' | 'a'..'z' | '0'..'9' | "_")*) }
+varSymbol = { !keywords ~ (('a'..'z' | "_") ~ ('A'..'Z' | 'a'..'z' | '0'..'9' | "_")*) }
 likeString = { ('A'..'Z' | 'a'..'z' | '0'..'9' | "_" | "-" | " ")* }
 
 idLiteral = { "Id" }
@@ -40,6 +42,7 @@ toState = _{ "=>" ~ ws? ~ stateExpr ~ ws? }
 
 comment = { lb | ((!lb ~ ANY)* ~ (lb | EOI)) }
 commentStart = _{ ws? ~ "//" ~ ws? }
+// TODO "//" だけでテキストのないコメントを処理できない
 commentLine = _{ commentStart ~ comment }
 
 // typeの定義部分
@@ -82,7 +85,7 @@ snapshotValueExpr = { snapshotValueLiteral }
 snapshotItemLiteral = { ws? ~ contextExpr ~ ws? ~ ":" ~ ws? ~ snapshotValueExpr ~ ws? }
 snapshotItemLiterals = _{ snapshotItemLiteral ~ (("," ~ (snapshotItemLiteral))*)? }
 
-valueLiteral = _{ effectLiteral | applyLiteral | contextEffectLiteral | sliceLiteral | snapshotLiteral }
+valueLiteral = _{ effectLiteral | applyLiteral | contextEffectLiteral | sliceLiteral | snapshotLiteral | scopeExpr }
 sliceLiteral = { "[" ~ ws? ~ (contextEffectExpr ~ (ws? ~ "," ~ws? ~ contextEffectExpr)*)? ~ ws? ~ "]" }
 contextLiteral = { contextTypeLiteral }
 // 値のContextExprは名前しか必要ないので、contextLiteralは不要かもしれない
@@ -92,13 +95,13 @@ effectExpr = { varSymbol | effectLiteral }
 contextEffectLiteral = { "(" ~ ws? ~ contextExpr ~ ws? ~ "," ~ ws? ~ effectExpr ~ ws? ~ ")" }
 contextEffectExpr = { contextEffectLiteral }
 
-expr = { ws?~ (factor ~ ws? ~ E) | term ~ ws? }
-term = { (valueLiteral | "(" ~ ws? ~ expr ~ ws? ~ ")") }
-factor = _{ws? ~ term ~ ws?}
+expr = { ws? ~ ((term ~ ws? ~ E) | term) ~ ws? }
+term = { valueLiteral | ("(" ~ ws? ~ expr ~ ws? ~ ")") }
+// factor = _{ ws? ~ term ~ ws? }
 // E = _{ op ~ expr }
-terminalA = {";"|"}"}
-E = _{ op ~ ws? ~ term ~ ws? ~ (E | !EOI) }
+E = _{ ws? ~ op ~ ws? ~ term ~ ws? }
 
+// _外す
 calcStmt = _{ expr }
 
 // let 関連
@@ -113,24 +116,9 @@ letStmt = { "let" ~ (assignExpr | bindExpr) }
 
 // scope
 
-stmtOrComment = _{stmt|commentLine}
+stmtOrComment = _{ stmt | commentLine }
 stmtTerminal = { ";" }
-scopeInner = _{
-  (
-    // (commentLine) |
-    //((stmtOrComment)+ ~ expr) |
-    //((stmtOrComment)+) |
-    //(stmt) |
-    (stmtOrComment+) |
-    (stmtOrComment+ ~ expr) |
-    //(expr) |
-    //(stmt) |
-    (ws?)
-    //((commentLine | expr) ) |
-    //((commentLine | (scopeStmt | typeStmt | letStmt | calcStmt) ~ ws? ~ ";")+ ~ expr ) |
-    //((commentLine | (scopeStmt | typeStmt | letStmt | calcStmt) ~ ws? ~ ";")* )
-  )
-}
+scopeInner = _{ ws? ~ ((stmtOrComment+ ~ (expr ~ commentLine*)) | (commentLine* ~ expr ~ commentLine*)) ~ ws? }
 scopeLiteral = {
   ws? ~ "{" ~ ws? ~
   scopeInner ~ ws? ~ "}"
@@ -141,9 +129,7 @@ scopeStmt = { scopeExpr }
 
 // stmt
 
-// stmt = { ws? ~ ((!stmtTerminal ~ (scopeExpr | typeExpr | expr)) ~ ws? ~ stmtTerminal)* ~ ws? }
-// stmt = { ws? ~ (scopeExpr | typeExpr | expr) ~ ws? ~ ";" ~ ws? }
-stmt = { ws? ~ (( scopeStmt | typeStmt | letStmt | calcStmt) ~ ws? ~ ";") }
+stmt = { ws? ~ (( scopeStmt | calcStmt | typeStmt | letStmt) ~ ws? ~ ";") }
 rootScope = { ws? ~ scopeInner ~ ws? }
 
 document = { SOI ~ rootScope ~ EOI }
