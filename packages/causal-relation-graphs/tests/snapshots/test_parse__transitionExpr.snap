@@ -1,6 +1,6 @@
 ---
 source: packages/causal-relation-graphs/tests/test_parse.rs
-assertion_line: 11
+assertion_line: 9
 expression: "causal_relation_graphs::parse(content.as_str()).unwrap()"
 
 ---
@@ -18,16 +18,21 @@ expression: "causal_relation_graphs::parse(content.as_str()).unwrap()"
     Id:
       effect:
         transitionEffect: Id
+- " 変数の参照\n"
+- " effect変数の参照\n"
+- " a;\n"
+- " stateLabel変数の参照\n"
+- " =>a;\n"
+- " 文字列風に書けてもいい\n"
 - Expr:
     Id:
       effect:
         transitionEffect:
           StateLabel:
             Label: foo bar
-- Expr:
-    Id:
-      effect:
-        transitionEffect:
-          StateLabel:
-            Label: a
+- Id:
+    effect:
+      transitionEffect:
+        StateLabel:
+          Label: a
 

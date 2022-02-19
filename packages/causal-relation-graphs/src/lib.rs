@@ -4,7 +4,7 @@ extern crate pest_derive;
 
 mod parser;
 
-use parser::{Node, Value, Vm};
+use parser::{Node, Vm};
 
 pub fn parse(document: &str) -> Result<Node, String> {
     parser::parse(document)
@@ -15,18 +15,12 @@ pub fn run(document: &str) -> Result<String, String> {
 }
 
 pub fn execute_ast(ast: &Node) -> Result<String, String> {
-    match ast {
-        Node::Scope(_) => (),
-        _ => return Err("".to_string()),
-    }
-
     let mut vm = Vm::new();
     let value = match ast {
-        Node::Scope(scope) => scope.eval(&mut vm),
-        _ => Value::Empty,
+        Node::Root(scope) => scope.eval(&mut vm),
     };
 
-    serde_json::to_string_pretty(&value).map_err(|err| err.to_string())
+    serde_json::to_string_pretty(&value.1).map_err(|err| err.to_string())
 }
 
 // #[derive(Debug, Clone)]

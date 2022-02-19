@@ -21,19 +21,25 @@ pub fn parse(document: &str) -> Result<Node, String> {
 #[serde(untagged, rename_all = "camelCase")]
 pub enum Node {
     Root(ScopeValue),
-    Scope(ScopeValue),
-    Stmt(Stmt),
-    Comment(Comment),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ScopeValue(pub Vec<Stmt>);
+pub struct ScopeValue(pub Vec<ScopeInnerValue>);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged, rename_all = "camelCase")]
+pub enum ScopeInnerValue {
+    Comment(Comment),
+    Stmt(Stmt),
+    Expr(Expr),
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Stmt {
     Expr(Expr),
     TypeStmt(TypeExpr),
     LetStmt(LetExpr),
+    ScopeStmt(ScopeValue),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -255,6 +261,7 @@ pub enum Value {
     ContextEffect(ContextEffect),
     Slice(Slice),
     Snapshot(SnapshotValue),
+    Scope(ScopeValue),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -323,7 +330,7 @@ pub struct Comment(String);
 impl Expr {
     pub fn eval(&self, vm: &Vm) -> (Vm, Value) {
         match self {
-            Expr::Id(v) => (vm.clone(), v.clone()),
+            Expr::Id(v) => v.eval(vm),
             Expr::Op(op, lhs, rhs) => {
                 let (vm, lhs_value) = lhs.eval(vm);
                 let (vm, rhs_value) = rhs.eval(&vm);
@@ -338,8 +345,144 @@ impl Expr {
     }
 }
 
+impl Value {
+    pub fn eval(&self, vm: &Vm) -> (Vm, Value) {
+        match self {
+            Value::Id => (vm.clone(), Value::Id),
+            Value::Empty => (vm.clone(), Value::Empty),
+            Value::Effect(value) => {
+                let (vm, value) = value.eval(vm);
+
+                (vm, Value::Effect(value))
+            }
+            Value::Context(value) => {
+                let (vm, value) = value.eval(vm);
+
+                (vm, Value::Context(value))
+            }
+            Value::ContextEffect(value) => {
+                let (vm, value) = value.eval(vm);
+
+                (vm, Value::ContextEffect(value))
+            }
+            Value::Slice(value) => {
+                let (vm, value) = value.eval(vm);
+
+                (vm, Value::Slice(value))
+            }
+            Value::Snapshot(value) => {
+                let (vm, value) = value.eval(vm);
+
+                (vm, Value::Snapshot(value))
+            }
+            Value::Scope(value) => value.eval(vm),
+        }
+    }
+}
+
+impl Effect {
+    pub fn eval(&self, vm: &Vm) -> (Vm, Effect) {
+        return (vm.clone(), self.clone());
+    }
+}
+
+impl ContextLabel {
+    pub fn eval(&self, vm: &Vm) -> (Vm, ContextLabel) {
+        return (vm.clone(), self.clone());
+    }
+}
+
+impl ContextEffect {
+    pub fn eval(&self, vm: &Vm) -> (Vm, ContextEffect) {
+        match self {
+            ContextEffect(label, effect) => {
+                let (vm, label) = label.eval(vm);
+                let (vm, effect) = effect.eval(&vm);
+
+                (vm, ContextEffect(label, effect))
+            }
+        }
+    }
+}
+
+impl Slice {
+    pub fn eval(&self, vm: &Vm) -> (Vm, Slice) {
+        let (vm, vec) = self
+            .0
+            .iter()
+            .fold((vm.clone(), Vec::new()), |(vm, mut acc), item| {
+                let (vm, value) = item.eval(&vm);
+                acc.push(value);
+
+                (vm, acc)
+            });
+
+        (vm, Slice(vec))
+    }
+}
+
+impl SnapshotValue {
+    pub fn eval(&self, vm: &Vm) -> (Vm, SnapshotValue) {
+        let (vm, vec) = self
+            .0
+            .iter()
+            .fold((vm.clone(), Vec::new()), |(vm, mut acc), item| {
+                let (vm, value) = item.eval(&vm);
+                acc.push(value);
+
+                (vm, acc)
+            });
+
+        (vm, SnapshotValue(vec))
+    }
+}
+
+impl SnapshotValueItem {
+    pub fn eval(&self, vm: &Vm) -> (Vm, SnapshotValueItem) {
+        match self {
+            SnapshotValueItem(label, value) => {
+                let (vm, label) = label.eval(vm);
+                let (vm, value) = value.eval(&vm);
+
+                (vm, SnapshotValueItem(label, value))
+            }
+        }
+    }
+}
+
+impl SnapshotValueItemValue {
+    pub fn eval(&self, vm: &Vm) -> (Vm, SnapshotValueItemValue) {
+        match self {
+            SnapshotValueItemValue::Id => (vm.clone(), SnapshotValueItemValue::Id),
+            SnapshotValueItemValue::Empty => (vm.clone(), SnapshotValueItemValue::Empty),
+            SnapshotValueItemValue::StateLabel(label) => {
+                let (vm, label) = label.eval(vm);
+
+                (vm, SnapshotValueItemValue::StateLabel(label))
+            }
+            SnapshotValueItemValue::Int(value) => {
+                let (vm, value) = value.eval(vm);
+
+                (vm, SnapshotValueItemValue::Int(value))
+            }
+        }
+    }
+}
+
+impl StateLabel {
+    pub fn eval(&self, vm: &Vm) -> (Vm, StateLabel) {
+        (vm.clone(), self.clone())
+    }
+}
+
+impl IntLiteral {
+    pub fn eval(&self, vm: &Vm) -> (Vm, IntLiteral) {
+        (vm.clone(), self.clone())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Scope {
+pub struct VmScope {
     // TODO: VecをSymbolTableにする
     type_symbols: Vec<(TypeSymbol, TypeValue)>,
     value_symbols: Vec<(ValueSymbol, Value)>,
@@ -348,7 +491,7 @@ pub struct Scope {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Vm {
-    stack: Vec<Scope>,
+    stack: Vec<VmScope>,
 }
 
 impl Vm {
@@ -357,14 +500,14 @@ impl Vm {
     }
 
     pub fn push_stack(&mut self) {
-        self.stack.push(Scope::new())
+        self.stack.push(VmScope::new())
     }
 
-    pub fn pop_stack(&mut self) -> Option<Scope> {
+    pub fn pop_stack(&mut self) -> Option<VmScope> {
         self.stack.pop()
     }
 
-    pub fn current_scope(&mut self) -> &mut Scope {
+    pub fn current_scope(&mut self) -> &mut VmScope {
         self.stack.last_mut().unwrap()
     }
 
@@ -385,7 +528,7 @@ impl Vm {
     }
 }
 
-impl Scope {
+impl VmScope {
     pub fn new() -> Self {
         Self {
             type_symbols: Vec::new(),
@@ -517,43 +660,64 @@ impl LetExpr {
     }
 }
 
+impl ScopeInnerValue {
+    pub fn eval(&self, vm: &Vm) -> (Vm, Value) {
+        match self {
+            ScopeInnerValue::Comment(_) => (vm.clone(), Value::Empty),
+            ScopeInnerValue::Stmt(value) => (value.eval(vm), Value::Empty),
+            ScopeInnerValue::Expr(value) => {
+                let (mut vm, value) = value.eval(vm);
+                vm.current_scope().push_return_value(&value);
+
+                (vm, value)
+            }
+        }
+    }
+}
+
 impl Stmt {
-    pub fn eval(&self) -> Value {
-        Value::Empty
+    pub fn eval(&self, vm: &Vm) -> Vm {
+        let vm = match self {
+            Stmt::Expr(expr) => {
+                let (vm, _) = expr.eval(vm);
+
+                vm
+            }
+            Stmt::TypeStmt(expr) => {
+                let (vm, _) = expr.eval(vm);
+
+                vm
+            }
+            Stmt::LetStmt(expr) => {
+                let (vm, _) = expr.eval(vm);
+
+                vm
+            }
+            Stmt::ScopeStmt(scope) => {
+                let (vm, _) = scope.eval(vm);
+
+                vm
+            }
+        };
+
+        vm
     }
 }
 
 impl ScopeValue {
-    pub fn eval(&self, vm: &Vm) -> Value {
+    pub fn eval(&self, vm: &Vm) -> (Vm, Value) {
         let mut vm = vm.clone();
         vm.push_stack();
 
-        let mut vm = self.0.iter().fold(vm, |vm, stmt| {
-            let vm = match stmt {
-                Stmt::Expr(expr) => {
-                    let (mut vm, value) = expr.eval(&vm);
-                    vm.current_scope().push_return_value(&value);
+        let (mut vm, value) = self
+            .0
+            .iter()
+            .fold((vm, Value::Empty), |(vm, _value), stmt| stmt.eval(&vm));
 
-                    vm
-                }
-                Stmt::TypeStmt(expr) => {
-                    let (vm, _) = expr.eval(&vm);
+        // let scope = vm.pop_stack();
+        vm.pop_stack();
 
-                    vm
-                }
-                Stmt::LetStmt(expr) => {
-                    let (vm, _value) = expr.eval(&vm);
-
-                    vm
-                }
-            };
-
-            vm
-        });
-
-        let scope = vm.pop_stack();
-
-        scope.unwrap().return_value()
+        (vm, value)
     }
 }
 
@@ -672,9 +836,10 @@ fn parse_stmt(pair: &Pair<'_, Rule>) -> Stmt {
     let pair = pair.clone().into_inner().next().unwrap();
 
     match pair.as_rule() {
-        Rule::expr => Stmt::Expr(parse_expr(&pair)),
         Rule::typeStmt => Stmt::TypeStmt(parse_type_expr(&pair)),
         Rule::letStmt => Stmt::LetStmt(parse_let_expr(&pair)),
+        Rule::calcStmt => Stmt::Expr(parse_expr(&pair)),
+        Rule::scopeStmt => Stmt::ScopeStmt(parse_scope_stmt(&pair)),
         _ => panic!(),
     }
 }
@@ -1078,6 +1243,7 @@ fn parse_term(pair: &Pair<'_, Rule>) -> Expr {
         Rule::transitionEffectExpr => Expr::Id(Value::Effect(Effect::TransitionEffect(
             parse_transition_effect_expr(&pair),
         ))),
+        Rule::scopeExpr => Expr::Id(Value::Scope(parse_scope_expr(&pair))),
         _ => panic!(),
     }
 }
@@ -1328,45 +1494,63 @@ fn parse_comment(pair: &Pair<'_, Rule>) -> Comment {
     Comment(pair.as_span().as_str().to_string())
 }
 
-fn parse_stmt_or_comment(pair: &Pair<'_, Rule>) -> Option<Stmt> {
-    match pair.as_rule() {
-        Rule::commentLine => None,
-        Rule::comment => None,
-        Rule::stmt => Some(parse_stmt(pair)),
-        Rule::expr => Some(Stmt::Expr(parse_expr(pair))),
-        _ => {
-            unimplemented!()
-        }
+fn parse_scope_inner(pair: &Pair<'_, Rule>) -> ScopeValue {
+    let items = pair
+        .clone()
+        .into_inner()
+        .map(|item| item)
+        .collect::<Vec<_>>();
+    let pos = items.iter().position(|item| item.as_rule() == Rule::expr);
+    if pos.is_none() {
+        panic!()
     }
+
+    let ret = items
+        .iter()
+        .map(|item| match item.as_rule() {
+            Rule::comment => ScopeInnerValue::Comment(parse_comment(item)),
+            Rule::stmt => ScopeInnerValue::Stmt(parse_stmt(item)),
+            Rule::expr => ScopeInnerValue::Expr(parse_expr(item)),
+            _ => {
+                unimplemented!()
+            }
+        })
+        .collect::<_>();
+
+    ScopeValue(ret)
 }
 
-fn parse_scope(pair: &Pair<'_, Rule>) -> ScopeValue {
-    match pair.as_rule() {
-        Rule::rootScope => {
-            let pairs = pair.clone().into_inner();
-            let a = pairs
-                .map(|item| parse_stmt_or_comment(&item))
-                .filter(|item| item.is_some())
-                .map(|item| item.unwrap())
-                .collect::<Vec<_>>();
-            ScopeValue(a)
-        }
-        _ => {
-            unimplemented!()
-        }
-    }
-    // Comment(pair.as_span().as_str().to_string())
+fn parse_scope_literal(pair: &Pair<'_, Rule>) -> ScopeValue {
+    let pair = pair.clone().into_inner().next().unwrap();
+
+    parse_scope_inner(&pair)
+}
+
+fn parse_scope_expr(pair: &Pair<'_, Rule>) -> ScopeValue {
+    let pair = pair.clone().into_inner().next().unwrap();
+
+    parse_scope_literal(&pair)
+}
+
+fn parse_scope_stmt(pair: &Pair<'_, Rule>) -> ScopeValue {
+    let pair = pair.clone().into_inner().next().unwrap();
+
+    parse_scope_expr(&pair)
+}
+
+fn parse_root_scope(pair: &Pair<'_, Rule>) -> ScopeValue {
+    let pair = pair.clone().into_inner().next().unwrap();
+
+    parse_scope_inner(&pair)
 }
 
 pub fn to_node(pair: &Pair<'_, Rule>) -> Node {
     match pair.as_rule() {
         Rule::document => {
-            let pairs = pair.clone().into_inner();
-            let pair = pairs.clone().next().unwrap();
-            Node::Scope(parse_scope(&pair))
+            let pair = pair.clone().into_inner().next().unwrap();
+            Node::Root(parse_root_scope(&pair))
         }
-        Rule::comment => Node::Comment(parse_comment(pair)),
-        Rule::EOI => Node::Comment(Comment("".to_string())),
+        // Rule::EOI => Node::Comment(Comment("".to_string())),
         _ => {
             unimplemented!();
         }

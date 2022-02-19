@@ -23,6 +23,7 @@ contextTypeLiteral = { varSymbol ~ ws? ~ ":" ~ ws? ~ effectTypeExpr }
 
 applyLiteral = _{ contextTypeLiteral | idLiteral | emptyLiteral | varSymbol }
 
+// TODO: scopeが書ける
 stateMachineExpr = { typeLiteral | transitionEffectExpr }
 
 effectTypeLiteral = { stateMachineExpr | intContextTypeLiteral | typeSymbol }
@@ -79,6 +80,8 @@ ops = _{ composeOp | applyOp | reduceOp | pushOp }
 op = { ws ~ ops ~ ws }
 
 snapshotLiteral = { "{" ~ ws? ~ snapshotItemLiterals* ~ ws? ~ "}" }
+// TODO: scopeが書ける
+// TODO: 任意の式が書ける
 snapshotValueLiteral = { idLiteral | emptyLiteral | intExpr | stateExpr }
 snapshotValueExpr = { snapshotValueLiteral }
 snapshotItemLiteral = { ws? ~ contextExpr ~ ws? ~ ":" ~ ws? ~ snapshotValueExpr ~ ws? }
@@ -86,22 +89,23 @@ snapshotItemLiterals = _{ snapshotItemLiteral ~ (("," ~ (snapshotItemLiteral))*)
 
 valueLiteral = _{ effectLiteral | applyLiteral | contextEffectLiteral | sliceLiteral | snapshotLiteral | scopeExpr }
 sliceLiteral = { "[" ~ ws? ~ (contextEffectExpr ~ (ws? ~ "," ~ws? ~ contextEffectExpr)*)? ~ ws? ~ "]" }
+// TODO: scopeが書ける
 contextLiteral = { contextTypeLiteral }
 // 値のContextExprは名前しか必要ないので、contextLiteralは不要かもしれない
 contextExpr = { contextLiteral | varSymbol }
+// TODO: scopeが書ける
 effectLiteral = { idLiteral | emptyLiteral | addEffectExpr | transitionEffectExpr }
 effectExpr = { varSymbol | effectLiteral }
+// TODO: scopeが書ける
 contextEffectLiteral = { "(" ~ ws? ~ contextExpr ~ ws? ~ "," ~ ws? ~ effectExpr ~ ws? ~ ")" }
 contextEffectExpr = { contextEffectLiteral }
 
 expr = { ws? ~ ((term ~ ws? ~ E) | term) ~ ws? }
+// TODO: _つける
 term = { valueLiteral | ("(" ~ ws? ~ expr ~ ws? ~ ")") }
-// factor = _{ ws? ~ term ~ ws? }
-// E = _{ op ~ expr }
 E = _{ ws? ~ op ~ ws? ~ term ~ ws? }
 
-// _外す
-calcStmt = _{ expr }
+calcStmt = { expr }
 
 // let 関連
 
@@ -117,12 +121,8 @@ letStmt = { "let" ~ (assignExpr | bindExpr) }
 
 stmtOrComment = _{ stmt | commentLine }
 stmtTerminal = { ";" }
-scopeInner = _{ ws? ~ ((stmtOrComment+ ~ (expr ~ commentLine*)) | (commentLine* ~ expr ~ commentLine*)) ~ ws? }
-scopeLiteral = {
-  ws? ~ "{" ~ ws? ~
-  scopeInner ~ ws? ~ "}"
-  ~ ws?
-}
+scopeInner = { ws? ~ ((stmtOrComment+ ~ (expr ~ commentLine*)) | (commentLine* ~ expr ~ commentLine*)) ~ ws? }
+scopeLiteral = { ws? ~ "{" ~ ws? ~ scopeInner ~ ws? ~ "}" ~ ws? }
 scopeExpr = { scopeLiteral }
 scopeStmt = { scopeExpr }
 

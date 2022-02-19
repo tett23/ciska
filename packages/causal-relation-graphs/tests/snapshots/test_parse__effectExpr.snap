@@ -1,6 +1,6 @@
 ---
 source: packages/causal-relation-graphs/tests/test_parse.rs
-assertion_line: 11
+assertion_line: 9
 expression: "causal_relation_graphs::parse(content.as_str()).unwrap()"
 
 ---
@@ -22,10 +22,9 @@ expression: "causal_relation_graphs::parse(content.as_str()).unwrap()"
     Id:
       effect:
         transitionEffect: Empty
-- Expr:
-    Id:
-      effect:
-        transitionEffect:
-          StateLabel:
-            Label: a
+- Id:
+    effect:
+      transitionEffect:
+        StateLabel:
+          Label: a
 
