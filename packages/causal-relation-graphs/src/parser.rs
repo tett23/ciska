@@ -120,7 +120,7 @@ pub enum SnapshotValueItemValue {
     Id,
     Empty,
     Int(IntLiteral),
-    State(StateLabel),
+    StateLabel(StateLabel),
 }
 
 impl SnapshotValueItemValue {
@@ -133,8 +133,8 @@ impl SnapshotValueItemValue {
                 Effect::AddEffect(vv) => SnapshotValueItemValue::Int(IntLiteral(v.0 + vv.0)),
                 _ => SnapshotValueItemValue::Empty,
             },
-            SnapshotValueItemValue::State(v) => match effect {
-                Effect::Id => SnapshotValueItemValue::State(v.clone()),
+            SnapshotValueItemValue::StateLabel(v) => match effect {
+                Effect::Id => SnapshotValueItemValue::StateLabel(v.clone()),
                 Effect::TransitionEffect(_vv) => {
                     unimplemented!()
                 }
@@ -172,7 +172,11 @@ pub struct TypeSymbolReference(String);
 pub struct StateMachine(Vec<StateLabel>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct StateLabel(String);
+pub enum StateLabel {
+    Id,
+    Empty,
+    Label(String),
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TypeSymbol {
@@ -232,10 +236,14 @@ pub struct AddEffect(i64);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IntLiteral(i64);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TransitionEffect(StateLabel);
+pub enum TransitionEffect {
+    Id,
+    Empty,
+    StateLabel(StateLabel),
+}
 
 // #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-// pub struct TransitionLiteral(String);
+// pub struct transitionEffectLiteral(String);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -288,13 +296,14 @@ impl AddEffect {
 impl TransitionEffect {
     pub fn compose(&self, rhs: &Effect) -> Effect {
         match (self, rhs) {
-            (TransitionEffect(_lhs), Effect::TransitionEffect(TransitionEffect(rhs))) => {
-                Effect::TransitionEffect(TransitionEffect(rhs.clone()))
+            (
+                TransitionEffect::StateLabel(_lhs),
+                Effect::TransitionEffect(TransitionEffect::StateLabel(rhs)),
+            ) => Effect::TransitionEffect(TransitionEffect::StateLabel(rhs.clone())),
+            (TransitionEffect::StateLabel(lhs), Effect::Id) => {
+                Effect::TransitionEffect(TransitionEffect::StateLabel(lhs.clone()))
             }
-            (TransitionEffect(lhs), Effect::Id) => {
-                Effect::TransitionEffect(TransitionEffect(lhs.clone()))
-            }
-            _ => Effect::Empty,
+            _ => unimplemented!(), // _ => Effect::Empty,
         }
     }
 }
@@ -942,7 +951,7 @@ fn parse_state_machine_type_literal(pair: &Pair<'_, Rule>) -> StateMachine {
             let states = pair
                 .clone()
                 .into_inner()
-                .map(|item| parse_state_literal(&item))
+                .map(|item| parse_state_expr(&item))
                 .collect::<Vec<_>>();
 
             StateMachine(states)
@@ -951,14 +960,22 @@ fn parse_state_machine_type_literal(pair: &Pair<'_, Rule>) -> StateMachine {
     }
 }
 
-fn parse_state_literal(pair: &Pair<'_, Rule>) -> StateLabel {
-    match pair.as_rule() {
-        Rule::varSymbol => StateLabel(pair.as_span().as_str().to_string()),
-        Rule::stateLiteral => {
-            let pair = pair.clone().into_inner().next().unwrap();
+fn parse_state_expr(pair: &Pair<'_, Rule>) -> StateLabel {
+    let pair = pair.clone().into_inner().next().unwrap();
 
-            StateLabel(pair.as_span().as_str().to_string())
-        }
+    match pair.as_rule() {
+        Rule::stateLiteral => parse_state_literal(&pair),
+        Rule::idLiteral => StateLabel::Id,
+        Rule::emptyLiteral => StateLabel::Empty,
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_state_literal(pair: &Pair<'_, Rule>) -> StateLabel {
+    let pair = pair.clone().into_inner().next().unwrap();
+
+    match pair.as_rule() {
+        Rule::likeString => StateLabel::Label(pair.as_span().as_str().to_string()),
         _ => unimplemented!(),
     }
 }
@@ -1040,9 +1057,11 @@ fn parse_term(pair: &Pair<'_, Rule>) -> Expr {
     match pair.as_rule() {
         Rule::expr => parse_expr(&pair),
         Rule::varSymbol => Expr::Reference(ValueSymbolReference(parse_var_symbol(&pair))),
-        Rule::addLiteral => Expr::Id(Value::Effect(Effect::AddEffect(parse_add_effect(&pair)))),
-        Rule::transitionLiteral => Expr::Id(Value::Effect(Effect::TransitionEffect(
-            parse_transition_effect(&pair),
+        Rule::addEffectLiteral => Expr::Id(Value::Effect(Effect::AddEffect(
+            parse_add_effect_literal(&pair),
+        ))),
+        Rule::transitionEffectLiteral => Expr::Id(Value::Effect(Effect::TransitionEffect(
+            parse_transition_effect_literal(&pair),
         ))),
         Rule::idLiteral => Expr::Id(Value::Id),
         Rule::emptyLiteral => Expr::Id(Value::Empty),
@@ -1055,12 +1074,27 @@ fn parse_term(pair: &Pair<'_, Rule>) -> Expr {
             let a = parse_context_type_expr(&pair);
             Expr::Id(Value::Context(a.0.clone()))
         }
+        Rule::effectLiteral => Expr::Id(Value::Effect(parse_effect_literal(&pair))),
+        Rule::transitionEffectExpr => Expr::Id(Value::Effect(Effect::TransitionEffect(
+            parse_transition_effect_expr(&pair),
+        ))),
+        _ => panic!(),
+    }
+}
+
+fn parse_effect_literal(pair: &Pair<'_, Rule>) -> Effect {
+    let pair = pair.clone().into_inner().next().unwrap();
+
+    match pair.as_rule() {
+        Rule::idLiteral => Effect::Id,
+        Rule::emptyLiteral => Effect::Empty,
+        Rule::addEffectExpr => Effect::AddEffect(parse_add_effect_expr(&pair)),
+        Rule::transitionEffectExpr => Effect::TransitionEffect(parse_transition_effect_expr(&pair)),
         _ => panic!(),
     }
 }
 
 fn parse_context_type_expr(pair: &Pair<'_, Rule>) -> ContextType {
-    dbg!(pair, inner_len(pair));
     match inner_len(pair) {
         1 => {
             let pair = pair.clone().into_inner().next().unwrap();
@@ -1145,7 +1179,7 @@ fn parse_snapshot_value_item_value_literal(pair: &Pair<'_, Rule>) -> SnapshotVal
 
     match pair.as_rule() {
         Rule::intLiteral => SnapshotValueItemValue::Int(parse_int_literal(&pair)),
-        Rule::varSymbol => SnapshotValueItemValue::State(parse_state_literal(&pair)),
+        Rule::stateExpr => SnapshotValueItemValue::StateLabel(parse_state_expr(&pair)),
         Rule::idLiteral => SnapshotValueItemValue::Id,
         Rule::emptyLiteral => SnapshotValueItemValue::Empty,
         _ => unimplemented!(),
@@ -1200,38 +1234,66 @@ fn parse_context_expr(pair: &Pair<'_, Rule>) -> ContextLabel {
     match pair.as_rule() {
         Rule::contextExpr => {
             let pair = pair.clone().into_inner().next().unwrap();
-
-            ContextLabel(parse_var_symbol(&pair).0)
+            parse_context_type_literal(&pair)
         }
         _ => unimplemented!(),
+    }
+}
+
+fn parse_context_type_literal(pair: &Pair<'_, Rule>) -> ContextLabel {
+    match pair.as_rule() {
+        Rule::varSymbol => ContextLabel(parse_var_symbol(&pair).0),
+        Rule::contextLiteral => {
+            let pair = pair.clone().into_inner().next().unwrap();
+            parse_context_type_literal(&pair)
+        }
+        Rule::contextTypeLiteral => {
+            let pair = pair.clone().into_inner().next().unwrap();
+            ContextLabel(parse_context_label(&pair).0)
+        }
+        _ => {
+            unimplemented!();
+        }
     }
 }
 
 fn parse_effect_expr(pair: &Pair<'_, Rule>) -> Effect {
     match pair.as_rule() {
-        Rule::addLiteral => {
+        Rule::addEffectLiteral => {
             let pair = pair.clone().into_inner().next().unwrap();
-            Effect::AddEffect(parse_add_effect(&pair))
+            Effect::AddEffect(parse_add_effect_literal(&pair))
         }
-        Rule::transitionLiteral => {
+        Rule::transitionEffectLiteral => {
             let pair = pair.clone().into_inner().next().unwrap();
-            Effect::TransitionEffect(parse_transition_effect(&pair))
+            Effect::TransitionEffect(parse_transition_effect_literal(&pair))
         }
         Rule::idLiteral => Effect::Id,
         Rule::emptyLiteral => Effect::Empty,
         Rule::effectExpr => {
             let pair = pair.clone().into_inner().next().unwrap();
-            parse_effect_expr(&pair)
+            parse_effect_literal(&pair)
         }
         _ => unimplemented!(),
     }
 }
 
-fn parse_add_effect(pair: &Pair<'_, Rule>) -> AddEffect {
+fn parse_add_effect_expr(pair: &Pair<'_, Rule>) -> AddEffect {
+    let pair = pair.clone().into_inner().next().unwrap();
+
     match pair.as_rule() {
-        Rule::addLiteral => {
+        Rule::addEffectLiteral => {
             let pair = pair.clone().into_inner().next().unwrap();
-            parse_add_effect(&pair)
+            parse_add_effect_literal(&pair)
+        }
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_add_effect_literal(pair: &Pair<'_, Rule>) -> AddEffect {
+    match pair.as_rule() {
+        Rule::addEffectLiteral => {
+            let pair = pair.clone().into_inner().next().unwrap();
+            parse_add_effect_literal(&pair)
         }
         Rule::intLiteral => AddEffect(parse_int_literal(&pair).0),
         _ => unimplemented!(),
@@ -1242,13 +1304,22 @@ fn parse_int_literal(pair: &Pair<'_, Rule>) -> IntLiteral {
     IntLiteral(pair.as_span().as_str().parse::<i64>().unwrap())
 }
 
-fn parse_transition_effect(pair: &Pair<'_, Rule>) -> TransitionEffect {
+fn parse_transition_effect_expr(pair: &Pair<'_, Rule>) -> TransitionEffect {
+    let pair = pair.clone().into_inner().next().unwrap();
+
     match pair.as_rule() {
-        Rule::transitionLiteral => {
-            let pair = pair.clone().into_inner().next().unwrap();
-            parse_transition_effect(&pair)
-        }
-        Rule::stateLiteral => TransitionEffect(parse_state_literal(&pair)),
+        Rule::idLiteral => TransitionEffect::Id,
+        Rule::emptyLiteral => TransitionEffect::Empty,
+        Rule::transitionEffectLiteral => parse_transition_effect_literal(&pair),
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_transition_effect_literal(pair: &Pair<'_, Rule>) -> TransitionEffect {
+    let pair = pair.clone().into_inner().next().unwrap();
+
+    match pair.as_rule() {
+        Rule::stateExpr => TransitionEffect::StateLabel(parse_state_expr(&pair)),
         _ => unimplemented!(),
     }
 }

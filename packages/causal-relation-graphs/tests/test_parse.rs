@@ -34,7 +34,8 @@ fn execute() {
     let text = "let a :: Snapshot = {a: 1, d: a}; let b :: Slice = []; [] << a; [] << (a, +1); let aa :: ContextEffect = (a apply +1); [(a, +10)] reduce {a: 1};";
     let result = causal_relation_graphs::execute_ast(&causal_relation_graphs::parse(text).unwrap());
 
-    dbg!(result);
+    dbg!(&result);
+    assert!(result.is_ok());
 }
 
 fn read_fixtures() -> Vec<(String, String)> {

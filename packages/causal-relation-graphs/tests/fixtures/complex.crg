@@ -1,0 +1,35 @@
+// 型の定義
+
+type StateMachine1 :: StateMachine = Id => `a` => `b`;
+type Snapshot1 :: Snapshot = { context_a: Int, context_b: StateMachine1 };
+type Context1 :: Context = a: Int;
+
+// 値の定義
+
+let snapshot1 :: Snapshot = { context_a: 1, context_b: `a` };
+let slice :: Slice = [(context_a, +10), (context_b, =>`b`)];
+
+// 演算
+
++1 compose +2;
+=>`a` compose =>`b`;
+((a: Int) apply (=>`a` compose =>`b`));
+let a :: Context = a: Int;
+((a: Int) apply (=>`a` compose =>`b`));
+
+let a :: ContextEffect = (a apply +1);
+(a apply =>`b`);
+
+let slice2 :: Slice = [] << (a, +2);
+
+// reduce
+
+slice reduce { context_a: 1 };
+
+slice2 reduce {a: 1};
+
+(
+  [(context_a: Int, +3)] << (
+    (context_a: Int) apply (+1 compose (+1 compose +1))
+  )
+) reduce {context_a: 10, context_b: `a`};
