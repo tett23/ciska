@@ -17,6 +17,7 @@ fn parse_empty() {
 
 #[test]
 fn parse() {
+    dbg!(read_fixtures());
     read_fixtures().iter().for_each(|(name, content)| {
         assert_yaml_snapshot!(
             name.as_str(),

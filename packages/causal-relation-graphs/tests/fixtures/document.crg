@@ -22,13 +22,13 @@ Empty;
 Id compose =>a;
 Id compose Id;
 ((Id) compose Id);
-type Foo :: StateMachine = (Id => a) & (Id => b) & Foo;
-type Foo :: StateMachine = (Id => a) & (Id => b) & Foo;
-type Foo :: StateMachine = (Id => a);
-type Foo :: Snapshot = { foo: Int, a, a: Id => a, a: Foo };
+type Foo :: StateMachine = (Id => `a`) & (Id => `b`) & Foo;
+type Foo :: StateMachine = (Id => `a`) & (Id => `b`) & Foo;
+type Foo :: StateMachine = (Id => `a`);
+type Foo :: Snapshot = { foo: Int, a, a: Id => `a`, a: Foo };
 type Foo :: StateMachine;
-type Foo :: StateMachine = Id => a => b;
-type Foo :: StateMachine = Id => a => b;
+type Foo :: StateMachine = Id => `a` => `b`;
+type Foo :: StateMachine = Id => `a` => `b`;
 type Foo :: Context = a: Int;
 type Foo :: Snapshot = {  };
 type Foo :: Snapshot = {  };
@@ -51,7 +51,7 @@ let a :: Slice;
 let a :: Slice = [(a, +1)];
 [(a, +1)];
 [(a: Int, +1)];
-[(a, +1), (b, =>a)];
+[(a, +1), (b, =>`a`)];
 +1;
 [];
 +1;
@@ -67,17 +67,17 @@ a apply +1;
 +1 compose +1 compose +1;
 a apply (+10 compose +10);
 
-=>a compose =>b;
+=>`a` compose =>`b`;
 Id compose Empty;
 +1 compose +10;
 +(-1) compose +1;
-+1 compose =>a;
++1 compose =>`a`;
 
-type A :: StateMachine = Id => start => a;
+type A :: StateMachine = Id => `start` => `a`;
 type A :: Snapshot = {};
 type A :: Snapshot = {a};
 type A :: StateMachine ;
-type A :: StateMachine  = Id => start => end;
+type A :: StateMachine  = Id => `start` => `end`;
 type Foo :: Context = label: Int;
 type A :: Snapshot  = {foo: A, bar: B, baz: Int};
 type A :: Snapshot = {foo: A, foo};
@@ -85,7 +85,7 @@ type A :: Snapshot = {foo: A, foo};
 // (foo :: Int) apply +1
 
 type A :: StateMachine;
-type A :: StateMachine = Id => start => end;
+type A :: StateMachine = Id => `start` => `end;
 type Context_a :: Context = foo: Int;
 type B :: Snapshot = {foo: A, bar: B, baz: Int};
 
@@ -96,8 +96,8 @@ type AAA  :: Snapshot = { context_a, context_b, context_c: Int };
 // VirtualActionはあとで実装する
 
 hoge apply +10;
-=>a compose =>b;
-Id compose =>b;
+=>`a` compose =>`b`;
+Id compose =>`b`;
 +10 compose +10;
 +10 compose +(10);
 +10 compose +(-10);
@@ -112,7 +112,7 @@ hoge apply (+10 compose +10);
 // let aa = push a (hoge, +10);
 // push a (hoge, +10);
 // push aa, a (hoge, +10);
-// push a (bar, =>registrated);
+// push a (bar, =>`registrated`);
 
 // let a :: Slice;
 // let c :: Slice = [a, a compose b];
