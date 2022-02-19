@@ -7,17 +7,14 @@ use std::{fs, path::Path};
 fn parse_empty() {
     let text = r###""###;
 
-    dbg!(text);
-
     assert_yaml_snapshot!(causal_relation_graphs::parse(text).unwrap(), @r###"
     ---
-    name: document
+    []
     "###);
 }
 
 #[test]
 fn parse() {
-    dbg!(read_fixtures());
     read_fixtures().iter().for_each(|(name, content)| {
         assert_yaml_snapshot!(
             name.as_str(),
@@ -35,7 +32,6 @@ fn execute() {
     let text = "let a :: Snapshot = {a: 1, d: `a`}; let b :: Slice = []; [] << a; [] << (a, +1); let aa :: ContextEffect = (a apply +1); [(a, +10)] reduce {a: 1};";
     let result = causal_relation_graphs::execute_ast(&causal_relation_graphs::parse(text).unwrap());
 
-    dbg!(&result);
     assert!(result.is_ok());
 }
 
