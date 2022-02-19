@@ -1,0 +1,212 @@
+---
+source: packages/causal-relation-graphs/tests/test_parse.rs
+assertion_line: 19
+expression: "causal_relation_graphs::parse(content.as_str()).unwrap()"
+
+---
+- TypeStmt:
+    Assign:
+      symbol:
+        name: StateMachine1
+        kind: StateMachine
+      value:
+        StateMachine:
+          - Id
+          - Label: a
+          - Label: b
+- TypeStmt:
+    Assign:
+      symbol:
+        name: Snapshot1
+        kind: Snapshot
+      value:
+        Snapshot:
+          - - context_a
+            - Int
+          - - context_b
+            - TypeSymbolReference: StateMachine1
+- TypeStmt:
+    Assign:
+      symbol:
+        name: Context1
+        kind: Context
+      value:
+        Context:
+          - a
+          - Int
+- LetStmt:
+    Assign:
+      symbol:
+        name: snapshot1
+        kind: Snapshot
+      expr:
+        Id:
+          snapshot:
+            - - context_a
+              - Int: 1
+            - - context_b
+              - StateLabel:
+                  Label: a
+- LetStmt:
+    Assign:
+      symbol:
+        name: slice
+        kind: Slice
+      expr:
+        Id:
+          slice:
+            - - context_a
+              - addEffect: 10
+            - - context_b
+              - transitionEffect:
+                  StateLabel:
+                    Label: b
+- Expr:
+    Op:
+      - Compose
+      - Id:
+          effect:
+            addEffect: 1
+      - Id:
+          effect:
+            addEffect: 2
+- Expr:
+    Op:
+      - Compose
+      - Id:
+          effect:
+            transitionEffect:
+              StateLabel:
+                Label: a
+      - Id:
+          effect:
+            transitionEffect:
+              StateLabel:
+                Label: b
+- Expr:
+    Op:
+      - Apply
+      - Id:
+          context: a
+      - Op:
+          - Compose
+          - Id:
+              effect:
+                transitionEffect:
+                  StateLabel:
+                    Label: a
+          - Id:
+              effect:
+                transitionEffect:
+                  StateLabel:
+                    Label: b
+- LetStmt:
+    Assign:
+      symbol:
+        name: a
+        kind: Context
+      expr:
+        Id:
+          context: a
+- Expr:
+    Op:
+      - Apply
+      - Id:
+          context: a
+      - Op:
+          - Compose
+          - Id:
+              effect:
+                transitionEffect:
+                  StateLabel:
+                    Label: a
+          - Id:
+              effect:
+                transitionEffect:
+                  StateLabel:
+                    Label: b
+- LetStmt:
+    Assign:
+      symbol:
+        name: a
+        kind: ContextEffect
+      expr:
+        Op:
+          - Apply
+          - Reference: a
+          - Id:
+              effect:
+                addEffect: 1
+- Expr:
+    Op:
+      - Apply
+      - Reference: a
+      - Id:
+          effect:
+            transitionEffect:
+              StateLabel:
+                Label: b
+- LetStmt:
+    Assign:
+      symbol:
+        name: slice2
+        kind: Slice
+      expr:
+        Op:
+          - Push
+          - Id:
+              slice: []
+          - Id:
+              contextEffect:
+                - a
+                - addEffect: 2
+- Expr:
+    Op:
+      - Reduce
+      - Reference: slice
+      - Id:
+          snapshot:
+            - - context_a
+              - Int: 1
+- Expr:
+    Op:
+      - Reduce
+      - Reference: slice2
+      - Id:
+          snapshot:
+            - - a
+              - Int: 1
+- Expr:
+    Op:
+      - Reduce
+      - Op:
+          - Push
+          - Id:
+              slice:
+                - - context_a
+                  - addEffect: 3
+          - Op:
+              - Apply
+              - Id:
+                  context: context_a
+              - Op:
+                  - Compose
+                  - Id:
+                      effect:
+                        addEffect: 1
+                  - Op:
+                      - Compose
+                      - Id:
+                          effect:
+                            addEffect: 1
+                      - Id:
+                          effect:
+                            addEffect: 1
+      - Id:
+          snapshot:
+            - - context_a
+              - Int: 10
+            - - context_b
+              - StateLabel:
+                  Label: a
+
