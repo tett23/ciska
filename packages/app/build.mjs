@@ -1,7 +1,6 @@
 import { build } from 'esbuild';
 import glob from 'glob';
 import process from 'process';
-import fs from 'fs/promises';
 
 const entryPoints = glob.sync('./src/**/*.ts');
 const watch = process.argv.some((item) => item === '--watch');

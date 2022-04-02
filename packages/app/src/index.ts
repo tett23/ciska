@@ -9,6 +9,8 @@ import {
   protocol,
   shell,
 } from 'electron';
+import { ApiActions, ApiRequest, ApiResponse } from '@ciska/message/messages';
+import { useCases } from '@ciska/message/useCases';
 
 app.on('ready', async () => {
   const mainWindow = new BrowserWindow({
@@ -17,7 +19,7 @@ app.on('ready', async () => {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      nativeWindowOpen: true,
+      // nativeWindowOpen: true,
       nodeIntegrationInWorker: true,
       preload: join(__dirname, 'preload.js'),
     },
@@ -56,16 +58,10 @@ app.on('ready', async () => {
 
 app.on('window-all-closed', app.quit);
 
-// // listen the channel `message` and resend the received message to the renderer process
-// ipcMain.on('message', (event: IpcMainEvent, message: any) => {
-//   console.log(message);
-//   setTimeout(() => event.sender.send('message', 'hi from electron'), 500);
-// });
-
-// ipcMain.handle(
-//   'message',
-//   async <T extends ApiActions>(
-//     _: IpcMainInvokeEvent,
-//     [action, arg]: [T, ApiRequest<T>],
-//   ): Promise<ApiResponse<T>> => useCases(action, arg),
-// );
+ipcMain.handle(
+  'message',
+  async <T extends ApiActions>(
+    _: IpcMainInvokeEvent,
+    [action, arg]: [T, ApiRequest<T>],
+  ): Promise<ApiResponse<T>> => useCases(action, arg),
+);

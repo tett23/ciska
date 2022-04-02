@@ -19,7 +19,9 @@
     "pack": "NODE_ENV=production yarn build && electron-builder --dir --mac --x64",
     "dist": "NODE_ENV=production yarn build && electron-builder --mac --x64"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@ciska/message": "1.0.0"
+  },
   "devDependencies": {
     "electron": "^18.0.1"
   }
