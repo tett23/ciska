@@ -1,0 +1,38 @@
+{
+  "name": "@ciska/message",
+  "version": "1.0.0",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "exports": {
+    "./package.json": "./package.json",
+    "./useCases": {
+      "import": "./lib/useCases/esm/index.js",
+      "module": "./lib/useCases/esm/index.js",
+      "require": "./lib/useCases/cjs/index.js",
+      "types": "./lib/useCases/index.d.ts"
+    },
+    "./client": {
+      "import": "./lib/client/esm/index.js",
+      "module": "./lib/client/esm/index.js",
+      "require": "./lib/client/cjs/index.js",
+      "types": "./lib/client/index.d.ts"
+    }
+  },
+  "author": "tett23",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "clean": "rimraf lib",
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "lint": "run-p lint:ts",
+    "lint:ts": "tsc --noEmit",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --passWithNoTests",
+    "ci": "lint"
+  },
+  "dependencies": {
+    "react": "^18.0.0",
+    "swr": "^1.2.2"
+  },
+  "devDependencies": {}
+}
