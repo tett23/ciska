@@ -11,9 +11,11 @@
     "start:electron:dev": "yarn workspace @ciska/app start",
     "build:dependencies": "run-p build:dependencies:*",
     "build:dependencies:app": "yarn workspace @ciska/app build",
+    "build:dependencies:message": "yarn workspace @ciska/message build",
     "build:dependencies:menu-frontend": "yarn workspace @ciska/menu-frontend build",
     "watch:dependencies": "run-p watch:dependencies:*",
     "watch:dependencies:app": "yarn workspace @ciska/app watch",
+    "watch:dependencies:message": "yarn workspace @ciska/message watch",
     "watch:dependencies:menu-frontend": "yarn workspace @ciska/menu-frontend watch",
     "clean": "yarn workspaces run clean"
   },
