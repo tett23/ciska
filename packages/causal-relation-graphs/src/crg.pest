@@ -3,7 +3,7 @@ ws = _{ ( " " | lb )* }
 number = _{ '0'..'9' }
 intLiteral = { ('1'..'9' ~ number*) | ("-" ~ '1'..'9' ~ number*) }
 
-keywords = _{ "type" | "let" }
+keywords = _{ "type" | "let" | "true" | "false" }
 
 typeSymbol = { (('A'..'Z' | "_") ~ ('A'..'Z' | 'a'..'z' | '0'..'9' | "_")*) }
 varSymbol = { !keywords ~ (('a'..'z' | "_") ~ ('A'..'Z' | 'a'..'z' | '0'..'9' | "_")*) }
@@ -50,14 +50,15 @@ commentLine = _{ commentStart ~ comment }
 stateMachineKeyword = { "StateMachine" }
 contextKeyword = { "Context" }
 snapshotKeyword = { "Snapshot" }
-typeKeywords = { stateMachineKeyword | stateMachineKeyword | contextKeyword | snapshotKeyword }
+intKeyword = { "Int" }
+typeKeywords = { fnTypeExpr | intKeyword | stateMachineKeyword | stateMachineKeyword | contextKeyword | snapshotKeyword }
 bindTypeExpr = { ws? ~ typeSymbol ~ ws? ~ "::" ~ ws? ~ typeKeywords }
 assignTypeExpr = { bindTypeExpr ~ ws? ~ "=" ~ ws? ~ typeExpr }
 
 stateMachineTypeExpr = { stateMachineTypeLiteral }
 contextedTypeExpr = { contextTypeLiteral }
 snapshotTypeExpr = { snapshotTypeLiteral }
-typeLiteral = { stateMachineTypeExpr | contextedTypeExpr | snapshotTypeExpr }
+typeLiteral = { fnTypeLiteral | stateMachineTypeExpr | contextedTypeExpr | snapshotTypeExpr }
 
 typeAndOp = { "&" }
 typeOps = _{ typeAndOp }
@@ -76,7 +77,9 @@ composeOp = { "compose" }
 applyOp = { "apply" }
 reduceOp = { "reduce" }
 pushOp = { "<<" }
-ops = _{ composeOp | applyOp | reduceOp | pushOp }
+orOp = { "|" }
+addOp = { "+" }
+ops = _{ composeOp | applyOp | reduceOp | pushOp | orOp | addOp }
 op = { ws ~ ops ~ ws }
 
 snapshotLiteral = { "{" ~ ws? ~ snapshotItemLiterals* ~ ws? ~ "}" }
@@ -87,7 +90,7 @@ snapshotValueExpr = { snapshotValueLiteral }
 snapshotItemLiteral = { ws? ~ contextExpr ~ ws? ~ ":" ~ ws? ~ snapshotValueExpr ~ ws? }
 snapshotItemLiterals = _{ snapshotItemLiteral ~ (("," ~ (snapshotItemLiteral))*)? }
 
-valueLiteral = _{ effectLiteral | applyLiteral | contextEffectLiteral | sliceLiteral | snapshotLiteral | scopeExpr }
+valueLiteral = _{ fnExpr | effectLiteral | applyLiteral | contextEffectLiteral | sliceLiteral | snapshotLiteral | scopeExpr }
 sliceLiteral = { "[" ~ ws? ~ (contextEffectExpr ~ (ws? ~ "," ~ws? ~ contextEffectExpr)*)? ~ ws? ~ "]" }
 // TODO: scopeが書ける
 contextLiteral = { contextTypeLiteral }
@@ -109,9 +112,9 @@ calcStmt = { expr }
 
 // let 関連
 
-bindKeywords = { "Slice" | "Effect" | "ContextEffect" | "Context" | "Snapshot" }
+bindKeywords = { fnTypeExpr  }
 // bindValuetypeExpr に型の式が書ける必要がある。{a: Int}みたいな
-bindValueTypeExpr = { bindKeywords }
+bindValueTypeExpr = { fnTypeExpr }
 
 bindExpr = { ws? ~ varSymbol ~ ws? ~ "::" ~ ws? ~ bindValueTypeExpr ~ ws? }
 assignExpr = { ws? ~ bindExpr ~ ws? ~ "=" ~ ws? ~ expr ~ ws?}
@@ -136,3 +139,17 @@ document = { SOI ~ rootScope ~ EOI }
 // いずれ {} で式を書けるようにする
 // Context型がUpperCamelCaseになってしまっている
 // reduceではなく、SliceにSnapshotをapplyすればいいのでは？
+// 先に型チェックの仕組みを入れる必要がある。型演算もチェック時に行う
+
+fnTypeItem = { ws? ~ typeSymbol ~ ws? }
+fnTypeLiteral = { ws? ~ typeSymbol ~ ws? ~ (ws? ~ "->" ~ ws? ~ typeSymbol ~ ws?)* ~ ws? }
+fnTypeExpr = { fnTypeLiteral }
+
+matchExpr = { varSymbol | effectLiteral | intLiteral }
+
+patternExpr = { ws? ~ patternTerm ~ ws? }
+// TODO: _つける
+patternTerm = _{ matchExpr | ("(" ~ ws? ~ patternExpr ~ ws? ~ ")") }
+
+fnLiteral = { ws? ~ (patternExpr ~ ws)* ~ ws ? ~ scopeExpr }
+fnExpr = { ws? ~ (fnLiteral | ((ws? ~ fnLiteral ~ ws? ~ "|" ~ ws?) ~ fnLiteral))  ~ ws?}

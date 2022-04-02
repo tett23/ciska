@@ -56,11 +56,20 @@ pub struct ValueSymbol {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BindKeywords {
+    Function(FunctionSignature),
     Slice,
     Effect,
     ContextEffect,
     Context,
     Snapshot,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FunctionSignature(Vec<FunctionSignatureItem>);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FunctionSignatureItem {
+    Reference(TypeSymbolName),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -899,12 +908,45 @@ fn parse_bind_expr(pair: &Pair<'_, Rule>) -> ValueSymbol {
 }
 
 fn parse_bind_keywords(pair: &Pair<'_, Rule>) -> BindKeywords {
-    match pair.as_span().as_str() {
-        "Slice" => BindKeywords::Slice,
-        "Effect" => BindKeywords::Effect,
-        "ContextEffect" => BindKeywords::ContextEffect,
-        "Context" => BindKeywords::Context,
-        "Snapshot" => BindKeywords::Snapshot,
+    let pair = pair.clone().into_inner().next().unwrap();
+
+    match &pair.as_rule() {
+        Rule::fnTypeExpr => parse_fn_type_expr(&pair),
+        _ => {
+            dbg!(&pair);
+            unimplemented!()
+        }
+    }
+
+    // match pair.as_span().as_str() {
+    //     "Slice" => BindKeywords::Slice,
+    //     "Effect" => BindKeywords::Effect,
+    //     "ContextEffect" => BindKeywords::ContextEffect,
+    //     "Context" => BindKeywords::Context,
+    //     "Snapshot" => BindKeywords::Snapshot,
+    //     _ => unimplemented!(),
+    // }
+}
+
+fn parse_fn_type_expr(pair: &Pair<'_, Rule>) -> BindKeywords {
+    let pair = pair.clone().into_inner().next().unwrap();
+
+    match &pair.as_rule() {
+        Rule::fnTypeLiteral => parse_fn_type_literal(&pair),
+        _ => unimplemented!(),
+    }
+}
+
+fn parse_fn_type_literal(pair: &Pair<'_, Rule>) -> BindKeywords {
+    match &pair.as_rule() {
+        Rule::fnTypeLiteral => {
+            let pairs = pair.clone().into_inner();
+            let types = pairs
+                .map(|item| FunctionSignatureItem::Reference(parse_type_symbol(&item)))
+                .collect::<Vec<_>>();
+
+            BindKeywords::Function(FunctionSignature(types))
+        }
         _ => unimplemented!(),
     }
 }
@@ -1150,6 +1192,14 @@ fn parse_type_symbol(pair: &Pair<'_, Rule>) -> TypeSymbolName {
 }
 
 fn parse_type_keyword(pair: &Pair<'_, Rule>) -> TypeKind {
+    // match pair.as_span().as_str() {
+    //     "Slice" => BindKeywords::Slice,
+    //     "Effect" => BindKeywords::Effect,
+    //     "ContextEffect" => BindKeywords::ContextEffect,
+    //     "Context" => BindKeywords::Context,
+    //     "Snapshot" => BindKeywords::Snapshot,
+    //     _ => unimplemented!(),
+    // }
     let pair = pair.clone().into_inner().next().unwrap();
 
     parse_type_kind(&pair)
@@ -1218,6 +1268,7 @@ fn parse_expr(pair: &Pair<'_, Rule>) -> Expr {
 
 fn parse_term(pair: &Pair<'_, Rule>) -> Expr {
     let pair = pair.clone().into_inner().next().unwrap();
+    dbg!(&pair);
 
     match pair.as_rule() {
         Rule::expr => parse_expr(&pair),
@@ -1244,8 +1295,42 @@ fn parse_term(pair: &Pair<'_, Rule>) -> Expr {
             parse_transition_effect_expr(&pair),
         ))),
         Rule::scopeExpr => Expr::Id(Value::Scope(parse_scope_expr(&pair))),
+        Rule::fnExpr => {
+            parse_fn_expr(&pair);
+            unimplemented!()
+        }
         _ => panic!(),
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Function {
+    args: Pattern,
+    scope: ScopeValue,
+}
+
+fn parse_fn_expr(pair: &Pair<'_, Rule>) -> Function {
+    let pairs = pair.clone().into_inner();
+    let vec = pairs.map(|item| item).collect::<Vec<_>>();
+    let idx = vec.partition_point(|item| item.as_rule() == Rule::scopeExpr);
+    let args = vec[..idx]
+        .iter()
+        .map(|item| parse_pattern_expr(item))
+        .collect::<Vec<_>>();
+    let scope = vec[idx..]
+        .iter()
+        .map(|item| parse_scope_expr(item))
+        .collect::<Vec<_>>();
+
+    Function { args, scope }
+}
+
+fn parse_fn_literal(pair: &Pair<'_, Rule>) -> Effect {
+    dbg!(pair);
+    // pairs.map(|item|{
+    //     dbg!(&item);
+    // })
+    unimplemented!()
 }
 
 fn parse_effect_literal(pair: &Pair<'_, Rule>) -> Effect {
