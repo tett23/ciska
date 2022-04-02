@@ -18,8 +18,12 @@
     "pack": "NODE_ENV=production yarn build && electron-builder --dir --mac --x64",
     "dist": "NODE_ENV=production yarn build && electron-builder --mac --x64"
   },
-  "dependencies": {},
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
   "devDependencies": {
+    "@types/react-dom": "^17.0.14",
     "electron": "^16.0.8"
   }
 }
