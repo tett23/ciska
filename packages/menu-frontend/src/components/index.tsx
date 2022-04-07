@@ -12,12 +12,14 @@ export function App() {
 
 function AddNewProject() {
   const mes = useUpdater();
+  const openWindow = useOpenWindow();
 
   const dialog = useOpenDialog();
   const onClick = async () => {
     const paths = await dialog();
     console.log(paths);
-    mes('addNewProject', {});
+    await mes('addNewProject', {});
+    await openWindow();
   };
 
   return (
@@ -30,5 +32,11 @@ function AddNewProject() {
 function useOpenDialog() {
   return useCallback((): Promise<string[]> => {
     return global.api.openDialog({ properties: ['openDirectory'] });
+  }, []);
+}
+
+function useOpenWindow() {
+  return useCallback(() => {
+    global.api.openNewWindow({});
   }, []);
 }

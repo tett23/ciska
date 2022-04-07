@@ -14,6 +14,25 @@ import { ApiActions, ApiRequest, ApiResponse } from '@ciska/message/messages';
 import { useCases } from '@ciska/message/useCases';
 
 app.on('ready', async () => {
+  newSplashWindow();
+});
+
+function newSplashWindow() {
+  const indexPath = join(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    'menu-frontend',
+    'lib',
+    'cjs',
+    'index.html',
+  );
+
+  newWindow(indexPath);
+}
+
+function newWindow(htmlPath: string) {
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -30,19 +49,9 @@ app.on('ready', async () => {
     callback(req.url.replace(/^file:\/\//, ''));
   });
 
-  const indexPath = join(
-    __dirname,
-    '..',
-    '..',
-    '..',
-    'menu-frontend',
-    'lib',
-    'cjs',
-    'index.html',
-  );
   mainWindow.loadURL(
     format({
-      pathname: indexPath,
+      pathname: htmlPath,
       protocol: 'file:',
       slashes: true,
     }),
@@ -54,7 +63,7 @@ app.on('ready', async () => {
   });
 
   ipcMain.emit('startPoll');
-});
+}
 
 app.on('window-all-closed', app.quit);
 
@@ -78,5 +87,15 @@ ipcMain.handle(
     console.log(ret.filePaths);
 
     return ret.filePaths;
+  },
+);
+
+ipcMain.handle(
+  'openNewWindow',
+  async (
+    _: IpcMainInvokeEvent,
+    options: Parameters<typeof dialog.showOpenDialog>[0],
+  ) => {
+    newSplashWindow();
   },
 );

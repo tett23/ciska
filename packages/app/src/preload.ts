@@ -21,6 +21,8 @@ const Api = {
   ): Promise<ApiResponse<T>> => ipcRenderer.invoke('message', [type, arg]),
   openDialog: async (options: Parameters<typeof dialog.showOpenDialog>[0]) =>
     ipcRenderer.invoke('openDialog', options),
+  openNewWindow: async (options: {}) =>
+    ipcRenderer.invoke('openNewWindow', options),
   on: (channel: any, callback: any) => ipcRenderer.on(channel, callback),
 };
 
