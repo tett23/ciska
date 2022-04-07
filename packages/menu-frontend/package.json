@@ -9,13 +9,15 @@
   "scripts": {
     "clean": "rimraf lib",
     "build": "node build.mjs",
+    "build:dependencies": "run-p build:dependencies:*",
+    "build:dependencies:message": "yarn workspace @ciska/message build",
     "watch": "node build.mjs --watch",
+    "watch:dependencies": "run-p watch:dependencies:*",
+    "watch:dependencies:message": "yarn workspace @ciska/message watch",
     "lint": "run-p lint:ts",
     "lint:ts": "tsc --noEmit",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --passWithNoTests",
-    "ci": "lint",
-    "pack": "NODE_ENV=production yarn build && electron-builder --dir --mac --x64",
-    "dist": "NODE_ENV=production yarn build && electron-builder --mac --x64"
+    "ci": "lint"
   },
   "dependencies": {
     "@ciska/message": "1.0.0",
@@ -23,7 +25,6 @@
     "react-dom": "^18.0.0"
   },
   "devDependencies": {
-    "@types/react-dom": "^17.0.14",
-    "electron": "^16.0.8"
+    "@types/react-dom": "^17.0.14"
   }
 }

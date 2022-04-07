@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { ipcRenderer, contextBridge, IpcRenderer } from 'electron';
+import { ipcRenderer, contextBridge, IpcRenderer, dialog } from 'electron';
 import { ApiActions, ApiRequest, ApiResponse } from '@ciska/message/messages';
 
 declare global {
@@ -19,6 +19,8 @@ const Api = {
     type: T,
     arg: ApiRequest<T>,
   ): Promise<ApiResponse<T>> => ipcRenderer.invoke('message', [type, arg]),
+  openDialog: async (options: Parameters<typeof dialog.showOpenDialog>[0]) =>
+    ipcRenderer.invoke('openDialog', options),
   on: (channel: any, callback: any) => ipcRenderer.on(channel, callback),
 };
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useUpdater } from '@ciska/message/client';
 
 export function App() {
@@ -12,7 +12,11 @@ export function App() {
 
 function AddNewProject() {
   const mes = useUpdater();
-  const onClick = () => {
+
+  const dialog = useOpenDialog();
+  const onClick = async () => {
+    const paths = await dialog();
+    console.log(paths);
     mes('addNewProject', {});
   };
 
@@ -21,4 +25,10 @@ function AddNewProject() {
       <button onClick={onClick}>new</button>
     </div>
   );
+}
+
+function useOpenDialog() {
+  return useCallback((): Promise<string[]> => {
+    return global.api.openDialog({ properties: ['openDirectory'] });
+  }, []);
 }

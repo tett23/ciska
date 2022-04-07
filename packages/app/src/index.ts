@@ -8,6 +8,7 @@ import {
   IpcMainInvokeEvent,
   protocol,
   shell,
+  dialog,
 } from 'electron';
 import { ApiActions, ApiRequest, ApiResponse } from '@ciska/message/messages';
 import { useCases } from '@ciska/message/useCases';
@@ -39,7 +40,6 @@ app.on('ready', async () => {
     'cjs',
     'index.html',
   );
-  console.log({ a: indexPath });
   mainWindow.loadURL(
     format({
       pathname: indexPath,
@@ -63,5 +63,20 @@ ipcMain.handle(
   async <T extends ApiActions>(
     _: IpcMainInvokeEvent,
     [action, arg]: [T, ApiRequest<T>],
-  ): Promise<ApiResponse<T>> => useCases(action, arg),
+  ): Promise<ApiResponse<T>> => {
+    return useCases(action, arg);
+  },
+);
+
+ipcMain.handle(
+  'openDialog',
+  async (
+    _: IpcMainInvokeEvent,
+    options: Parameters<typeof dialog.showOpenDialog>[0],
+  ) => {
+    const ret = await dialog.showOpenDialog(null, options);
+    console.log(ret.filePaths);
+
+    return ret.filePaths;
+  },
 );
